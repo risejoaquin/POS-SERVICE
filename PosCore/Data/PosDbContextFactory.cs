@@ -2,8 +2,7 @@ using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using PosCore.Models;
+using PosCore.Services;
 
 namespace PosCore.Data;
 
@@ -20,10 +19,9 @@ public class PosDbContextFactory : IDesignTimeDbContextFactory<PosDbContext>
         var connectionString = configuration.GetSection("DatabaseSettings")["ConnectionString"];
         builder.UseSqlite(connectionString);
 
-        var appSettings = new AppSettings();
-        configuration.Bind(appSettings);
-        var options = Options.Create(appSettings);
+        var sessionManager = new SessionManager();
+        sessionManager.CurrentTenantId = "TENANT_001"; // Default for design time
 
-        return new PosDbContext(builder.Options, options);
+        return new PosDbContext(builder.Options, sessionManager);
     }
 }
