@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using PosServer.Data;
+using PosServer.Models;
+using BCrypt.Net;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,8 +15,23 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Configure Database
+var connString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+var envDbUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (!string.IsNullOrEmpty(envDbUrl)) {
+    connString = envDbUrl;
+}
+if (connString.StartsWith("\"") && connString.EndsWith("\"")) {
+    connString = connString.Trim('"');
+}
+if (connString.StartsWith("postgres://") || connString.StartsWith("postgresql://")) {
+    var uri = new Uri(connString);
+    var userInfo = uri.UserInfo.Split(':', 2); // Limit split to 2 in case password has colon
+    var username = WebUtility.UrlDecode(userInfo[0]);
+    var password = userInfo.Length > 1 ? WebUtility.UrlDecode(userInfo[1]) : "";
+    connString = $"Host={uri.Host};Port={(uri.IsDefaultPort ? 5432 : uri.Port)};Database={uri.LocalPath.TrimStart('/')};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=True";
+}
 builder.Services.AddDbContext<CentralDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connString));
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -58,6 +76,18 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<CentralDbContext>();
     dbContext.Database.EnsureCreated();
+    
+    // Seed admin user if it doesn't exist
+    if (!dbContext.Users.Any(u => u.Username == "admin"))
+    {
+        dbContext.Users.Add(new User
+        {
+            Username = "admin",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+            TenantId = "TENANT_001"
+        });
+        dbContext.SaveChanges();
+    }
 }
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";

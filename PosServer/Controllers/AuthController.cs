@@ -3,6 +3,9 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using PosServer.Data;
+using Microsoft.EntityFrameworkCore;
+using BCrypt.Net;
 
 namespace PosServer.Controllers;
 
@@ -11,21 +14,23 @@ namespace PosServer.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
+    private readonly CentralDbContext _dbContext;
 
-    public AuthController(IConfiguration configuration)
+    public AuthController(IConfiguration configuration, CentralDbContext dbContext)
     {
         _configuration = configuration;
+        _dbContext = dbContext;
     }
 
     [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        // En un entorno real, validar contra la base de datos
-        if (request.Username == "admin" && request.Password == "admin123")
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+        
+        if (user != null && BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            var tenantId = "tenant-123"; // Ejemplo de tenant id asignado al usuario
-            var token = GenerateJwtToken(request.Username, tenantId);
-            return Ok(new { Token = token, TenantId = tenantId });
+            var token = GenerateJwtToken(user.Username, user.TenantId);
+            return Ok(new { Token = token, TenantId = user.TenantId });
         }
 
         return Unauthorized();
