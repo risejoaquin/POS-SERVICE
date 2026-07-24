@@ -50,9 +50,9 @@ public partial class App : Application
             using (var mgr = new UpdateManager("https://api.tu-pos-central.com/releases"))
             {
                 SquirrelAwareApp.HandleEvents(
-                    onInitialInstall: () => mgr.CreateShortcutForThisExe(),
-                    onAppUpdate: () => mgr.CreateShortcutForThisExe(),
-                    onAppUninstall: () => mgr.RemoveShortcutForThisExe()
+                    onInitialInstall: (v, t) => mgr.CreateShortcutForThisExe(),
+                    onAppUpdate: (v, t) => mgr.CreateShortcutForThisExe(),
+                    onAppUninstall: (v, t) => mgr.RemoveShortcutForThisExe()
                     );
             }
             
