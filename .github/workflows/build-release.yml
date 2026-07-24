@@ -1,0 +1,50 @@
+name: Build and Release POS
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-package:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install Nuget
+        uses: nuget/setup-nuget@v2
+
+      - name: Install Squirrel
+        run: dotnet tool install -g squirrel.windows
+
+      - name: Publish App
+        run: dotnet publish ./PosCore/PosCore.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./PosCore/publish
+
+      - name: Sign App (Optional)
+        # Uncomment and configure with secrets if you have a Code Signing Certificate
+        # run: |
+        #   echo "${{ secrets.CERT_BASE64 }}" | base64 -d > cert.pfx
+        #   signtool sign /f cert.pfx /p "${{ secrets.CERT_PASSWORD }}" /tr http://timestamp.digicert.com /td sha256 /fd sha256 ./PosCore/publish/PosCore.exe
+        run: echo "Code signing step (simulated)"
+
+      - name: Create Nuget Package
+        working-directory: ./PosCore
+        run: nuget pack PosCore.nuspec -Version 1.0.0
+
+      - name: Releasify with Squirrel
+        working-directory: ./PosCore
+        run: Squirrel --releasify PosCore.1.0.0.nupkg
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Squirrel-Releases
+          path: ./PosCore/Releases/

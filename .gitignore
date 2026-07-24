@@ -1,0 +1,49 @@
+# =========================
+# Archivos Web (No necesarios para el proyecto .NET)
+# =========================
+node_modules/
+src/
+assets/
+index.html
+vite.config.ts
+package.json
+bun.lock
+tsconfig.json
+metadata.json
+.env
+.env.*
+
+# =========================
+# .NET Core / C#
+# =========================
+bin/
+obj/
+TestResults/
+*.db
+*.db-shm
+*.db-wal
+pos_local.db
+
+# =========================
+# Publish / Setup Output
+# =========================
+publish/
+Output/
+Releases/
+*.nupkg
+*.exe
+
+# =========================
+# IDEs / OS metadata
+# =========================
+.vscode/
+.idea/
+.vs/
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs y Archivos Temporales
+# =========================
+*.log
+*.patch

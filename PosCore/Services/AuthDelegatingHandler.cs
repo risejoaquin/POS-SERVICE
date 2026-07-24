@@ -1,0 +1,31 @@
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace PosCore.Services;
+
+public class AuthDelegatingHandler : DelegatingHandler
+{
+    private readonly SessionManager _sessionManager;
+
+    public AuthDelegatingHandler(SessionManager sessionManager)
+    {
+        _sessionManager = sessionManager;
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrEmpty(_sessionManager.Token))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _sessionManager.Token);
+        }
+
+        var response = await base.SendAsync(request, cancellationToken);
+        
+        // Handle token refresh logic here if needed
+        
+        return response;
+    }
+}
