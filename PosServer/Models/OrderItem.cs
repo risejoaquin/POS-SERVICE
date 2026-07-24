@@ -7,7 +7,8 @@ public class OrderItem
     public Order Order { get; set; } = null!;
     public int ProductId { get; set; }
     public string ProductBarcode { get; set; } = string.Empty;
-    public string ProductBarcode { get; set; } = string.Empty;
+    
+    
     public Product Product { get; set; } = null!;
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
