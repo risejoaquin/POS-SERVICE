@@ -134,7 +134,6 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    [RelayCommand]
     private void OpenReports()
     {
         var reportsWindow = App.ServiceProvider?.GetService(typeof(Views.ReportsWindow)) as System.Windows.Window;
