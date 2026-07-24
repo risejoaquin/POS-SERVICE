@@ -53,7 +53,7 @@ public partial class App : Application
                     onInitialInstall: v => mgr.CreateShortcutForThisExe(),
                     onAppUpdate: v => mgr.CreateShortcutForThisExe(),
                     onAppUninstall: v => mgr.RemoveShortcutForThisExe()
-                    });
+                    );
             }
             
             // 2. Comprobar actualizaciones en segundo plano
