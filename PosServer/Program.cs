@@ -22,9 +22,11 @@ var envDbUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 if (!string.IsNullOrEmpty(envDbUrl)) {
     connString = envDbUrl;
 }
+
 if (connString.StartsWith("\"") && connString.EndsWith("\"")) {
     connString = connString.Trim('"');
 }
+
 if (connString.StartsWith("postgres://") || connString.StartsWith("postgresql://")) {
     var uri = new Uri(connString);
     var userInfo = uri.UserInfo.Split(':', 2); // Limit split to 2 in case password has colon
@@ -32,6 +34,7 @@ if (connString.StartsWith("postgres://") || connString.StartsWith("postgresql://
     var password = userInfo.Length > 1 ? WebUtility.UrlDecode(userInfo[1]) : "";
     connString = $"Host={uri.Host};Port={(uri.IsDefaultPort ? 5432 : uri.Port)};Database={uri.LocalPath.TrimStart('/')};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=True";
 }
+
 builder.Services.AddDbContext<CentralDbContext>(options =>
     options.UseNpgsql(connString));
 
@@ -67,41 +70,51 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
-// Ensure Database exists and is created
+// Init Database
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<CentralDbContext>();
     
-    // Ensure the database is created first
-    dbContext.Database.EnsureCreated();
-    
+    // Attempt to create tables if they don't exist
+    try
+    {
+        var creator = dbContext.Database.GetService<IRelationalDatabaseCreator>();
+        if (!creator.Exists())
+        {
+            creator.Create();
+        }
+        creator.CreateTables();
+    }
+    catch
+    {
+        // Tables already exist or permission denied
+    }
+}
+
+// Seed Database in a separate scope to ensure clean connection
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<CentralDbContext>();
     try 
     {
-        // Force create tables just in case EnsureCreated skips them (like on Supabase)
-        var creator = dbContext.Database.GetService<IRelationalDatabaseCreator>();
-        creator.CreateTables();
-    } 
-    catch 
-    { 
-        // Ignore exception if tables already exist
-    }
-    
-    // Seed admin user if it doesn't exist
-    if (!dbContext.Users.Any(u => u.Username == "admin"))
-    {
-        dbContext.Users.Add(new User
+        if (!dbContext.Users.Any(u => u.Username == "admin"))
         {
-            Username = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
-            TenantId = "TENANT_001"
-        });
-        dbContext.SaveChanges();
+            dbContext.Users.Add(new User
+            {
+                Username = "admin",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+                TenantId = "TENANT_001"
+            });
+            dbContext.SaveChanges();
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error seeding database: {ex.Message}");
     }
 }
 
