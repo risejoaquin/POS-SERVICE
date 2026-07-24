@@ -36,7 +36,7 @@ if (connString.StartsWith("postgres://") || connString.StartsWith("postgresql://
 }
 
 builder.Services.AddDbContext<CentralDbContext>(options =>
-    options.UseNpgsql(connString));
+    options.UseNpgsql(connString, o => o.CommandTimeout(120)));
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -63,11 +63,9 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
+app.MapGet("/", () => "POS Server is running!");
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
