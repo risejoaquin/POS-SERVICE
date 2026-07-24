@@ -6,6 +6,8 @@ using PosServer.Data;
 using PosServer.Models;
 using BCrypt.Net;
 using System.Net;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,7 +77,20 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<CentralDbContext>();
+    
+    // Ensure the database is created first
     dbContext.Database.EnsureCreated();
+    
+    try 
+    {
+        // Force create tables just in case EnsureCreated skips them (like on Supabase)
+        var creator = dbContext.Database.GetService<IRelationalDatabaseCreator>();
+        creator.CreateTables();
+    } 
+    catch 
+    { 
+        // Ignore exception if tables already exist
+    }
     
     // Seed admin user if it doesn't exist
     if (!dbContext.Users.Any(u => u.Username == "admin"))
