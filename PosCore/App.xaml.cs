@@ -52,8 +52,8 @@ public partial class App : Application
                 SquirrelAwareApp.HandleEvents(
                     onInitialInstall: v => mgr.CreateShortcutForThisExe(),
                     onAppUpdate: v => mgr.CreateShortcutForThisExe(),
-                    onAppUninstall: v => mgr.RemoveShortcutForThisExe(),
-                    onFirstRun: () => { /* Primera vez que se ejecuta */ });
+                    onAppUninstall: v => mgr.RemoveShortcutForThisExe()
+                    });
             }
             
             // 2. Comprobar actualizaciones en segundo plano
