@@ -8,5 +8,6 @@ public class OutboxMessage
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? ProcessedAt { get; set; }
     
+    
     public string TenantId { get; set; } = string.Empty;
 }

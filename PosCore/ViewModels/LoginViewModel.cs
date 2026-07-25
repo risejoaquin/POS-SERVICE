@@ -50,13 +50,14 @@ public partial class LoginViewModel : ObservableObject
             _sessionManager.Token = result.Token;
             _sessionManager.CurrentTenantId = result.TenantId;
             _sessionManager.Username = Username;
-
+            _sessionManager.SaveSession();
             RequestClose?.Invoke();
         }
         else
         {
             ErrorMessage = "Usuario o contraseña incorrectos, o sin conexión.";
         }
+
         IsLoading = false;
     }
 }

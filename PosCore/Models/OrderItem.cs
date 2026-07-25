@@ -18,5 +18,6 @@ public class OrderItem
     public decimal SubTotal => Quantity * UnitPrice;
     
     public DateTime LastUpdated { get; set; } = DateTime.Now;
+    [System.Text.Json.Serialization.JsonIgnore]
     public string TenantId { get; set; } = string.Empty;
 }

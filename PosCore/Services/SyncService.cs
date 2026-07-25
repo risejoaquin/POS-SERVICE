@@ -28,13 +28,13 @@ public class SyncService
         
         // Configurar timer para ejecutar cada 10 segundos
         _timer = new System.Timers.Timer(10000);
-        _timer.Elapsed += async (sender, e) => await ProcessOutboxAsync();
+        _timer.Elapsed += async (sender, e) => await SyncDataAsync();
     }
 
     public void Start()
     {
         _timer.Start();
-        Task.Run(async () => await ProcessOutboxAsync());
+        Task.Run(async () => await SyncDataAsync());
     }
 
     public void Stop()
@@ -42,7 +42,7 @@ public class SyncService
         _timer.Stop();
     }
 
-    private async Task ProcessOutboxAsync()
+    public async Task SyncDataAsync()
     {
         if (_isSyncing) return;
         _isSyncing = true;

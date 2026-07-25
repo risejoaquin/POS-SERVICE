@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,11 +11,27 @@ using PosCore.Views;
 using Squirrel;
 using System.Threading.Tasks;
 using Serilog;
+using System;
+using System.Linq;
 
 namespace PosCore;
 
 public partial class App : Application
 {
+    private async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            using (var mgr = new UpdateManager("https://api.tu-pos-central.com/releases"))
+            {
+                await mgr.UpdateApp();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Error al actualizar la aplicación.");
+        }
+    }
     public static IServiceProvider? ServiceProvider { get; private set; }
 
     protected override void OnStartup(StartupEventArgs e)
@@ -65,12 +82,9 @@ public partial class App : Application
         }
 #endif
 
-        var builder = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-
-        IConfiguration configuration = builder.Build();
-
+        string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
+        var secureSettings = SecureConfigManager.LoadAndSecureConfig(configPath);
+        
         var services = new ServiceCollection();
 
         // 0. Configuración de Logging
@@ -79,16 +93,17 @@ public partial class App : Application
             loggingBuilder.AddSerilog(dispose: true);
         });
 
-        // 0. Configuración
-        services.Configure<AppSettings>(configuration);
+        // 0. Configuración (Opciones en memoria a partir de los datos seguros)
+        services.AddSingleton(Microsoft.Extensions.Options.Options.Create(secureSettings));
 
         // 1. Inyección del DbContext (EF Core SQLite)
         services.AddDbContext<PosDbContext>(options =>
-            options.UseSqlite(configuration.GetSection("DatabaseSettings")["ConnectionString"]));
+            options.UseSqlite(secureSettings.DatabaseSettings.ConnectionString));
 
         // 2. Inyección de HttpClient, Handler de Auth y Servicios
         services.AddSingleton<SessionManager>();
         services.AddTransient<AuthDelegatingHandler>();
+        services.AddHttpClient<LicenseService>();
         services.AddHttpClient<IApiService, ApiService>()
             .AddHttpMessageHandler<AuthDelegatingHandler>();
 
@@ -97,70 +112,92 @@ public partial class App : Application
         services.AddTransient<InventoryViewModel>();
         services.AddTransient<LoginViewModel>();
         services.AddTransient<ReportsViewModel>();
+        services.AddTransient<ReturnsViewModel>();
+        services.AddTransient<ShiftViewModel>();
+        services.AddTransient<ShiftWindow>();
+        services.AddTransient<LogViewerViewModel>();
+        services.AddTransient<LogViewerWindow>();
 
         // 4. Inyección del servicio de sincronización (Singleton)
         services.AddSingleton<SyncService>();
+        services.AddSingleton<TicketPrinterService>();
 
         // 5. Inyección de Views
         services.AddTransient<MainWindow>();
         services.AddTransient<InventoryWindow>();
         services.AddTransient<LoginWindow>();
         services.AddTransient<ReportsWindow>();
+        services.AddTransient<ReturnsWindow>();
 
         ServiceProvider = services.BuildServiceProvider();
 
-        // Aplicar migraciones al inicio (Reemplaza a EnsureCreated)
+
+        // Aplicar migraciones y Backup
         using (var scope = ServiceProvider.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<PosDbContext>();
-            dbContext.Database.Migrate();
+            var connStr = secureSettings.DatabaseSettings.ConnectionString;
+            
+            DatabaseBackupService.ManageDatabaseBackup(connStr);
+
+            try 
+            {
+                dbContext.Database.Migrate();
+            } 
+            catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 11 || ex.SqliteErrorCode == 26 || ex.Message.Contains("malformed"))
+            {
+                // 11 = SQLITE_CORRUPT, 26 = SQLITE_NOTADB
+                Log.Error(ex, "Base de datos corrupta detectada.");
+                if (DatabaseBackupService.TryRestoreFromBackup(connStr))
+                {
+                    Application.Current.Shutdown();
+                    return;
+                }
+                else 
+                {
+                    MessageBox.Show("No se pudo reparar la base de datos. Póngase en contacto con el soporte.", "Error fatal", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Application.Current.Shutdown();
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error al aplicar migraciones de base de datos.");
+            }
         }
 
-        var loginWindow = ServiceProvider.GetRequiredService<LoginWindow>();
-        if (loginWindow.ShowDialog() == true)
+        Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        var sessionManager = ServiceProvider.GetRequiredService<SessionManager>();
+        bool isLoggedIn = sessionManager.LoadSession();
+
+        if (!isLoggedIn)
         {
-            // Iniciar servicio de sincronización en segundo plano
+            var loginWindow = ServiceProvider.GetRequiredService<LoginWindow>();
+            isLoggedIn = loginWindow.ShowDialog() == true;
+        }
+
+        if (isLoggedIn)
+        {
+            var licenseService = ServiceProvider.GetRequiredService<LicenseService>();
+            bool isLicenseValid = licenseService.ValidateLicenseAsync().GetAwaiter().GetResult();
+            if (!isLicenseValid)
+            {
+                Application.Current.Shutdown();
+                return;
+            }
+
             var syncService = ServiceProvider.GetRequiredService<SyncService>();
             syncService.Start();
-
-            // Resolvemos la ventana principal desde el contenedor de dependencias
+            
             var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
+            Application.Current.MainWindow = mainWindow;
+            Application.Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
             mainWindow.Show();
         }
         else
         {
             Application.Current.Shutdown();
         }
-    }
-
-    private async Task CheckForUpdatesAsync()
-    {
-        try
-        {
-            // Busca actualizaciones en la URL configurada
-            using var mgr = new UpdateManager("https://api.tu-pos-central.com/releases");
-            var updateInfo = await mgr.CheckForUpdate();
-            
-            if (updateInfo.ReleasesToApply.Any())
-            {
-                await mgr.UpdateApp();
-                // Opcional: Mostrar mensaje al usuario para reiniciar la app
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Fallo al comprobar actualizaciones mediante Squirrel.");
-            // Mensaje al usuario para descarga manual si la actualización falla crítica (simulado con Dispatcher)
-            Application.Current.Dispatcher.Invoke(() => {
-                // MessageBox.Show("No se pudo actualizar. Descarga manualmente desde: https://misitio.com/descargas", "Aviso de Actualización", MessageBoxButton.OK, MessageBoxImage.Information);
-            });
-        }
-    }
-
-    protected override void OnExit(ExitEventArgs e)
-    {
-        Log.Information("Cerrando aplicación...");
-        Log.CloseAndFlush();
-        base.OnExit(e);
     }
 }

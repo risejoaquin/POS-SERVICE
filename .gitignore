@@ -1,24 +1,23 @@
 # =========================
-# Archivos Web (No necesarios para el proyecto .NET)
+# Web / Node / Scripts
 # =========================
 node_modules/
-src/
-assets/
-index.html
-vite.config.ts
-package.json
-bun.lock
-tsconfig.json
-metadata.json
+dist/
+build/
 .env
 .env.*
+!.env.example
 
 # =========================
 # .NET Core / C#
 # =========================
-bin/
-obj/
+[Bb]in/
+[Oo]bj/
 TestResults/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
 *.db
 *.db-shm
 *.db-wal
@@ -36,7 +35,11 @@ Releases/
 # =========================
 # IDEs / OS metadata
 # =========================
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 .idea/
 .vs/
 .DS_Store
@@ -46,4 +49,7 @@ Thumbs.db
 # Logs y Archivos Temporales
 # =========================
 *.log
+logs/
+temp_logs/
+logs_backup_*.zip
 *.patch

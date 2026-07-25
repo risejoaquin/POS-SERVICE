@@ -13,5 +13,7 @@ public class Order
     public bool IsSynced { get; set; } = false;
     
     public DateTime LastUpdated { get; set; } = DateTime.Now;
+    public bool IsReturned { get; set; } = false;
+    [System.Text.Json.Serialization.JsonIgnore]
     public string TenantId { get; set; } = string.Empty;
 }

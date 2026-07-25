@@ -16,7 +16,7 @@ public partial class MainViewModel : ObservableObject
     private readonly PosDbContext _dbContext;
     private readonly IApiService _apiService;
 
-    // Propiedades Observables (CommunityToolkit automáticamente genera las propiedades)
+    // Propiedades Observables
     [ObservableProperty]
     private ObservableCollection<OrderItem> _cart = new();
 
@@ -33,13 +33,15 @@ public partial class MainViewModel : ObservableObject
     private SolidColorBrush _primaryColorBrush = Brushes.Blue;
 
     private readonly SyncService _syncService;
+    private readonly TicketPrinterService _ticketPrinterService;
 
-    public MainViewModel(PosDbContext dbContext, IApiService apiService, IOptions<AppSettings> settings, SyncService syncService)
+    public MainViewModel(PosDbContext dbContext, IApiService apiService, IOptions<AppSettings> settings, SyncService syncService, TicketPrinterService ticketPrinterService)
     {
         _dbContext = dbContext;
         _apiService = apiService;
         _settings = settings.Value;
         _syncService = syncService;
+        _ticketPrinterService = ticketPrinterService;
 
         _syncService.OnSyncCompleted += () => 
         {
@@ -60,42 +62,17 @@ public partial class MainViewModel : ObservableObject
         LoadProductsCommand.Execute(null);
     }
 
+
     [RelayCommand]
     private async Task LoadProductsAsync()
     {
-        // Optimización: Usar AsNoTracking para consultas de solo lectura
-        var localProducts = _dbContext.Products.AsNoTracking().ToList();
+        var localProducts = await _dbContext.Products.AsNoTracking().ToListAsync();
         
         if (!localProducts.Any())
         {
-            try 
-            {
-                var cloudProducts = await _apiService.GetProductsAsync();
-                if (cloudProducts.Any())
-                {
-                    _dbContext.Products.AddRange(cloudProducts);
-                    await _dbContext.SaveChangesAsync();
-                    localProducts = cloudProducts;
-                }
-            }
-            catch
-            {
-                // Fallback si no hay internet (o API central no existe aún)
-            }
-
-            // Datos semilla para poder probar offline de inmediato
-            if (!localProducts.Any())
-            {
-                 localProducts = new List<Product>
-                 {
-                     new Product { Name = "Café Americano", Barcode = "7501001", Price = 25.50m, StockQuantity = 100 },
-                     new Product { Name = "Latte Macchiato", Barcode = "7501002", Price = 35.00m, StockQuantity = 50 },
-                     new Product { Name = "Croissant", Barcode = "7501003", Price = 20.00m, StockQuantity = 30 },
-                     new Product { Name = "Agua Mineral", Barcode = "7501004", Price = 15.00m, StockQuantity = 40 }
-                 };
-                 _dbContext.Products.AddRange(localProducts);
-                 await _dbContext.SaveChangesAsync();
-            }
+            // If empty, try to sync from API
+            await _syncService.SyncDataAsync();
+            localProducts = await _dbContext.Products.AsNoTracking().ToListAsync();
         }
 
         Products.Clear();
@@ -110,27 +87,79 @@ public partial class MainViewModel : ObservableObject
     {
         var existingItem = Cart.FirstOrDefault(i => i.ProductId == product.Id);
         
+        int currentQuantity = existingItem?.Quantity ?? 0;
+        if (product.StockQuantity <= currentQuantity)
+        {
+            System.Windows.MessageBox.Show($"Stock insuficiente. Solo hay {product.StockQuantity} disponibles.", "Aviso", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+
         if (existingItem != null)
         {
             existingItem.Quantity++;
-            // Forzamos actualización de la UI creando una nueva lista para disparar el evento
-            // o se puede implementar INotifyPropertyChanged en OrderItem.
-            var tempCart = Cart.ToList();
-            Cart.Clear();
-            foreach(var item in tempCart) Cart.Add(item);
         }
         else
         {
-            Cart.Add(new OrderItem 
-            { 
-                ProductId = product.Id, 
-                Product = product, 
-                Quantity = 1, 
-                UnitPrice = product.Price 
+            Cart.Add(new OrderItem
+            {
+                ProductId = product.Id,
+                Product = product,
+                Quantity = 1,
+                UnitPrice = product.Price
             });
         }
         
         UpdateTotal();
+    }
+
+    [RelayCommand]
+    private void RemoveFromCart(OrderItem item)
+    {
+        if (item != null)
+        {
+            Cart.Remove(item);
+            UpdateTotal();
+        }
+    }
+
+    [RelayCommand]
+    private void IncreaseQuantity(OrderItem item)
+    {
+        if (item != null)
+        {
+            if (item.Product != null && item.Quantity >= item.Product.StockQuantity)
+            {
+                System.Windows.MessageBox.Show($"Stock insuficiente. Solo hay {item.Product.StockQuantity} disponibles.", "Aviso", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+            item.Quantity++;
+            UpdateTotal();
+        }
+    }
+
+    [RelayCommand]
+    private void DecreaseQuantity(OrderItem item)
+    {
+        if (item != null)
+        {
+            if (item.Quantity > 1)
+            {
+                item.Quantity--;
+            }
+            else
+            {
+                Cart.Remove(item);
+            }
+        }
+        
+        UpdateTotal();
+    }
+
+    [RelayCommand]
+    private void OpenShift()
+    {
+        var shiftWindow = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Views.ShiftWindow>(App.ServiceProvider!);
+        shiftWindow.ShowDialog();
     }
 
     [RelayCommand]
@@ -141,12 +170,20 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void OpenReturns()
+    {
+        var returnsWindow = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Views.ReturnsWindow>(App.ServiceProvider!);
+        returnsWindow.ShowDialog();
+        
+        LoadProductsCommand.Execute(null);
+    }
+
+    [RelayCommand]
     private void OpenInventory()
     {
         var inventoryWindow = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Views.InventoryWindow>(App.ServiceProvider!);
         inventoryWindow.ShowDialog();
         
-        // Refrescar el catálogo al cerrar el inventario por si hubo cambios (agregados/eliminados/editados)
         LoadProductsCommand.Execute(null);
     }
 
@@ -154,60 +191,71 @@ public partial class MainViewModel : ObservableObject
     private async Task CheckoutAsync()
     {
         if (!Cart.Any()) return;
+        
+        var activeShift = await _dbContext.CashRegisterShifts.FirstOrDefaultAsync(s => !s.IsClosed);
+        if (activeShift == null)
+        {
+            System.Windows.MessageBox.Show("No hay un turno abierto. Por favor, abra un turno desde 'Arqueo / Turno' antes de cobrar.", "Turno Cerrado", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
 
         try
         {
-            var order = new Order
-            {
-                OrderDate = DateTime.Now,
-                TotalAmount = Total,
-                Items = Cart.Select(i => new OrderItem 
-                {
-                    ProductId = i.ProductId,
-                    ProductBarcode = i.Product?.Barcode ?? string.Empty,
-                    Quantity = i.Quantity,
-                    UnitPrice = i.UnitPrice
-                }).ToList()
-            };
-
-            // Restar stock
+            // Validar stock antes de continuar
             foreach (var item in Cart)
             {
                 var product = await _dbContext.Products.FindAsync(item.ProductId);
                 if (product != null)
                 {
+                    if (product.StockQuantity < item.Quantity)
+                    {
+                        System.Windows.MessageBox.Show($"Stock insuficiente para {product.Name}. Compra no procesada.", "Aviso de Stock", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        return; // Cancela el proceso
+                    }
                     product.StockQuantity -= item.Quantity;
                 }
             }
 
-            // 1. Guardar orden localmente
+            var order = new Order
+            {
+                OrderDate = System.DateTime.Now,
+                TotalAmount = Total,
+                Items = Cart.ToList(),
+                IsReturned = false
+            };
+            
             _dbContext.Orders.Add(order);
             
-            // 2. Crear mensaje de Outbox
-            var jsonOptions = new System.Text.Json.JsonSerializerOptions { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles };
-            var outboxMessage = new OutboxMessage
+            var jsonOptions = new JsonSerializerOptions { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles };
+            var payload = JsonSerializer.Serialize(order, jsonOptions);
+            _dbContext.OutboxMessages.Add(new OutboxMessage
             {
                 EventType = "OrderCreated",
-                Payload = System.Text.Json.JsonSerializer.Serialize(order, jsonOptions),
-                CreatedAt = DateTime.Now
-            };
-            _dbContext.OutboxMessages.Add(outboxMessage);
+                Payload = payload,
+                CreatedAt = System.DateTime.Now
+            });
 
             await _dbContext.SaveChangesAsync();
-
-            // 3. Limpiar carrito
+            
+            _ticketPrinterService.PrintTicket(order);
+            
             Cart.Clear();
             UpdateTotal();
-            System.Windows.MessageBox.Show("Compra completada con éxito.", "Venta", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-
-            // Refrescar catálogo
+            System.Windows.MessageBox.Show("Venta completada exitosamente.", "Éxito", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            
             LoadProductsCommand.Execute(null);
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error en Checkout: {ex.Message}");
-            System.Windows.MessageBox.Show($"Error al completar compra: {ex.Message}\n{ex.InnerException?.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            System.Windows.MessageBox.Show($"Error al procesar la venta: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
+    }
+
+    [RelayCommand]
+    private void OpenLogs()
+    {
+        var logsWindow = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Views.LogViewerWindow>(App.ServiceProvider!);
+        logsWindow.ShowDialog();
     }
 
     private void UpdateTotal()

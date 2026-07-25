@@ -102,6 +102,9 @@
                     Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand"
                     Visibility="{Binding Settings.Modules.EnableTableManagement, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             
+            <Button Content="Logs" Width="100" Height="40" Margin="0,0,10,0" Background="#3B82F6" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenLogsCommand}" />
+            <Button Content="Arqueo / Turno" Width="120" Height="40" Margin="0,0,10,0" Background="#8B5CF6" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenShiftCommand}" />
+            <Button Content="Devoluciones" Width="120" Height="40" Margin="0,0,10,0" Background="#F59E0B" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenReturnsCommand}" />
             <Button Content="Reportes y Cierre" Width="150" Height="40" Margin="0,0,10,0" Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenReportsCommand}" />
             <Button Content="Control de Inventario" Width="150" Height="40" Margin="0,0,10,0" 
                     Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand"
