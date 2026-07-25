@@ -116,7 +116,7 @@ public partial class ReportsViewModel : ObservableObject
 
         // Low stock products (e.g., stock < 10)
         var lowStock = await _dbContext.Products
-            .Where(p => p.StockQuantity <= 10)
+            .Where(p => p.StockQuantity <= p.MinStockThreshold)
             .OrderBy(p => p.StockQuantity)
             .ToListAsync();
 

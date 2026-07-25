@@ -98,11 +98,23 @@ public partial class InventoryViewModel : ObservableObject
 
             if (EditingProduct.Id == 0)
             {
+                bool exists = await _dbContext.Products.AnyAsync(p => p.Barcode == EditingProduct.Barcode);
+                if (exists)
+                {
+                    MessageBox.Show("El código de barras ya existe.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
                 _dbContext.Products.Add(EditingProduct);
                 eventType = "ProductCreated";
             }
             else
             {
+                bool exists = await _dbContext.Products.AnyAsync(p => p.Barcode == EditingProduct.Barcode && p.Id != EditingProduct.Id);
+                if (exists)
+                {
+                    MessageBox.Show("El código de barras ya está asignado a otro producto.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
                 var existing = await _dbContext.Products.FindAsync(EditingProduct.Id);
                 if (existing != null)
                 {
@@ -150,14 +162,14 @@ public partial class InventoryViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteProductAsync()
     {
-        if (SelectedProduct == null) return;
-
-        var result = MessageBox.Show($"¿Está seguro de eliminar el producto '{SelectedProduct.Name}'?", "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var productToDelete = SelectedProduct;
+        if (productToDelete == null) return;
+        var result = MessageBox.Show($"¿Está seguro de eliminar el producto '{productToDelete.Name}'?", "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (result == MessageBoxResult.Yes)
         {
             try
             {
-                _dbContext.Products.Remove(SelectedProduct);
+                _dbContext.Products.Remove(productToDelete);
                 await _dbContext.SaveChangesAsync();
                 await LoadProductsAsync();
             }
