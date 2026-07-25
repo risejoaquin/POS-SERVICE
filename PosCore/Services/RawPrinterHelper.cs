@@ -8,9 +8,9 @@ namespace PosCore.Services
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public class DOCINFOA
         {
-            [MarshalAs(UnmanagedType.LPStr)] public string pDocName;
-            [MarshalAs(UnmanagedType.LPStr)] public string pOutputFile;
-            [MarshalAs(UnmanagedType.LPStr)] public string pDataType;
+            [MarshalAs(UnmanagedType.LPStr)] public string? pDocName;
+            [MarshalAs(UnmanagedType.LPStr)] public string? pOutputFile;
+            [MarshalAs(UnmanagedType.LPStr)] public string? pDataType;
         }
 
         [DllImport("winspool.Drv", EntryPoint = "OpenPrinterA", SetLastError = true, CharSet = CharSet.Ansi, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
@@ -42,7 +42,7 @@ namespace PosCore.Services
             pUnmanagedBytes = Marshal.AllocCoTaskMem(nLength);
             Marshal.Copy(data, 0, pUnmanagedBytes, nLength);
             
-            Int32 dwError = 0, dwWritten = 0;
+            Int32 dwWritten = 0;
             IntPtr hPrinter = new IntPtr(0);
             DOCINFOA di = new DOCINFOA();
 

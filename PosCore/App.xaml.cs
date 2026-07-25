@@ -76,7 +76,7 @@ public partial class App : Application
             }
             
             // 2. Comprobar actualizaciones en segundo plano
-            Task.Run(async () => await CheckForUpdatesAsync());
+            _ = Task.Run(async () => await CheckForUpdatesAsync());
         } 
         catch 
         {
