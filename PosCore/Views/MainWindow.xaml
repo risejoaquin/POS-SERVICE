@@ -6,10 +6,16 @@
         xmlns:local="clr-namespace:PosCore.Views"
         xmlns:vm="clr-namespace:PosCore.ViewModels"
         mc:Ignorable="d"
-        Title="{Binding Settings.WhiteLabel.CompanyName, StringFormat='{}POS - {0} (Modo Offline)'}" Height="600" Width="900" WindowStartupLocation="CenterScreen">
+        Title="{Binding Settings.WhiteLabel.CompanyName, StringFormat='{}POS - {0} (Modo Offline)'}" Height="600" Width="900" WindowStartupLocation="CenterScreen"
+        FocusManager.FocusedElement="{Binding ElementName=SearchBox}">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </Window.Resources>
+
+    <Window.InputBindings>
+        <KeyBinding Key="F12" Command="{Binding CheckoutCommand}" />
+        <KeyBinding Key="F4" Command="{Binding OpenShiftCommand}" />
+    </Window.InputBindings>
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -21,8 +27,26 @@
         </Grid.ColumnDefinitions>
 
         <!-- Área de Productos -->
-        <GroupBox Header="Catálogo de Productos" Grid.Row="0" Grid.Column="0" Margin="0,0,10,0" FontSize="14">
-            <ListView ItemsSource="{Binding Products}" BorderThickness="0" Margin="5">
+        <GroupBox Header="Catálogo de Productos" Grid.Row="0" Grid.Column="0" Margin="0,0,10,10" FontSize="14">
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="🔍" VerticalAlignment="Center" Margin="5,0,10,0" FontSize="18"/>
+                    <TextBox x:Name="SearchBox" Grid.Column="1" 
+                             Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" 
+                             FontSize="18" Padding="5" 
+                             ToolTip="Buscar producto por nombre o escanear código de barras"/>
+                </Grid>
+
+                <ListView Grid.Row="1" ItemsSource="{Binding FilteredProducts}" BorderThickness="0">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" Margin="5" Padding="10" Width="250">
@@ -51,7 +75,8 @@
                         <WrapPanel Orientation="Horizontal" />
                     </ItemsPanelTemplate>
                 </ListView.ItemsPanel>
-            </ListView>
+                </ListView>
+            </Grid>
         </GroupBox>
 
         <!-- Área de Carrito y Cobro -->
@@ -69,12 +94,30 @@
                             <Grid Margin="0,5">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="1*"/>
-                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding Product.Name}" Grid.Column="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding Quantity, StringFormat='{}{0}x'}" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding SubTotal, StringFormat=C}" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding Product.Name}" Grid.Column="0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,5,0"/>
+                                
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="-" Width="22" Height="22" 
+                                            Command="{Binding DataContext.DecreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            CommandParameter="{Binding}" 
+                                            Background="#E5E7EB" BorderThickness="0" Cursor="Hand" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Quantity}" Width="26" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <Button Content="+" Width="22" Height="22" 
+                                            Command="{Binding DataContext.IncreaseQuantityCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            CommandParameter="{Binding}" 
+                                            Background="#E5E7EB" BorderThickness="0" Cursor="Hand" FontWeight="Bold"/>
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding SubTotal, StringFormat=C}" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="Bold" Margin="0,0,10,10"/>
+                                
+                                <Button Grid.Column="3" Content="✕" Width="26" Height="26" 
+                                        Command="{Binding DataContext.RemoveFromCartCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                        CommandParameter="{Binding}" 
+                                        Background="#EF4444" Foreground="White" BorderThickness="0" Cursor="Hand" FontWeight="Bold"/>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
@@ -83,13 +126,13 @@
                 <!-- Totales -->
                 <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="0,1,0,0" Padding="0,10">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <TextBlock Text="Total:" FontSize="20" FontWeight="Bold" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Total:" FontSize="20" FontWeight="Bold" Margin="0,0,10,10" VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding Total, StringFormat=C}" FontSize="24" FontWeight="Bold" Foreground="#28A745" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Botón de Cobro -->
-                <Button Grid.Row="2" Content="Completar Venta" 
+                <Button Grid.Row="2" Content="Completar Venta (F12)" 
                         Command="{Binding CheckoutCommand}" 
                         Height="50" FontSize="18" Background="{Binding PrimaryColorBrush}" Foreground="White" FontWeight="Bold" 
                         BorderThickness="0" Cursor="Hand" Margin="0,10,0,0"/>
@@ -97,20 +140,33 @@
         </GroupBox>
 
         <!-- Módulos Opcionales -->
-        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,10,0,0">
-            <Button Content="Gestión de Mesas" Width="150" Height="40" Margin="0,0,10,0" 
+        <WrapPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,10,0,0">
+            <Button Content="Gestión de Mesas" Width="150" Height="40" Margin="0,0,10,10" 
                     Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand"
                     Visibility="{Binding Settings.Modules.EnableTableManagement, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             
-                        <Button Content="Probar Impresora" Width="130" Height="40" Margin="0,0,10,0" Background="#10B981" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding TestPrinterCommand}" />
-            <Button Content="Logs" Width="100" Height="40" Margin="0,0,10,0" Background="#3B82F6" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenLogsCommand}" />
-            <Button Content="Arqueo / Turno" Width="120" Height="40" Margin="0,0,10,0" Background="#8B5CF6" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenShiftCommand}" />
-            <Button Content="Devoluciones" Width="120" Height="40" Margin="0,0,10,0" Background="#F59E0B" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenReturnsCommand}" />
-            <Button Content="Reportes y Cierre" Width="150" Height="40" Margin="0,0,10,0" Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenReportsCommand}" />
-            <Button Content="Control de Inventario" Width="150" Height="40" Margin="0,0,10,0" 
+                        <Button Content="Probar Impresora" Width="130" Height="40" Margin="0,0,10,10" Background="#10B981" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding TestPrinterCommand}" />
+            <Button Content="Logs" Width="100" Height="40" Margin="0,0,10,10" Background="#3B82F6" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenLogsCommand}" />
+            <Button Content="Arqueo / Turno (F4)" Width="130" Height="40" Margin="0,0,10,10" Background="#8B5CF6" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenShiftCommand}" />
+            <Button Content="Devoluciones" Width="120" Height="40" Margin="0,0,10,10" Background="#F59E0B" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenReturnsCommand}" />
+            <Button Content="Reportes y Cierre" Width="150" Height="40" Margin="0,0,10,10" Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenReportsCommand}" />
+            <Button Content="Control de Inventario" Width="150" Height="40" Margin="0,0,10,10" 
                     Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand"
                     Command="{Binding OpenInventoryCommand}"
                     Visibility="{Binding Settings.Modules.EnableInventoryControl, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-        </StackPanel>
+        </WrapPanel>
+
+        <!-- Toast Notification Overlay -->
+        <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" 
+                VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                Margin="0,0,0,20" Padding="20,15" CornerRadius="8"
+                Background="{Binding NotificationColor}"
+                Visibility="{Binding IsNotificationVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Panel.ZIndex="999">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Opacity="0.3" ShadowDepth="4" BlurRadius="8"/>
+            </Border.Effect>
+            <TextBlock Text="{Binding NotificationMessage}" Foreground="White" FontSize="16" FontWeight="SemiBold"/>
+        </Border>
     </Grid>
 </Window>

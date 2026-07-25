@@ -8,6 +8,8 @@ using BCrypt.Net;
 using System.Net;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.FileProviders;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +68,20 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapGet("/", () => "POS Server is running!");
+
+// Servir la carpeta releases estáticamente para Squirrel
+var releasesPath = Path.Combine(builder.Environment.ContentRootPath, "releases");
+if (!Directory.Exists(releasesPath))
+{
+    Directory.CreateDirectory(releasesPath);
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(releasesPath),
+    RequestPath = "/releases",
+    ServeUnknownFileTypes = true // Importante para .nupkg y RELEASES
+});
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

@@ -24,9 +24,12 @@ public partial class App : Application
     {
         try
         {
-            using (var mgr = new UpdateManager("https://api.tu-pos-central.com/releases"))
+            using (var mgr = new UpdateManager("https://pos-service-production-ad3c.up.railway.app/releases"))
             {
-                await mgr.UpdateApp();
+                if (mgr.IsInstalledApp)
+                {
+                    await mgr.UpdateApp();
+                }
             }
         }
         catch (Exception ex)
@@ -66,7 +69,7 @@ public partial class App : Application
         // 1. Manejar eventos de Squirrel (accesos directos al instalar/desinstalar)
         try 
         {
-            using (var mgr = new UpdateManager("https://api.tu-pos-central.com/releases"))
+            using (var mgr = new UpdateManager("https://pos-service-production-ad3c.up.railway.app/releases"))
             {
                 SquirrelAwareApp.HandleEvents(
                     onInitialInstall: (v, t) => mgr.CreateShortcutForThisExe(),
@@ -147,6 +150,7 @@ public partial class App : Application
                 try {
                     dbContext.Database.EnsureCreated();
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN MinStockThreshold INTEGER NOT NULL DEFAULT 10;"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OutboxMessages ADD COLUMN RetryCount INTEGER NOT NULL DEFAULT 0;"); } catch { }
                     var relCreator = dbContext.Database.GetService<IRelationalDatabaseCreator>();
                     relCreator.CreateTables();
                 } catch { }

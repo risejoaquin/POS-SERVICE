@@ -24,6 +24,73 @@ public partial class MainViewModel : ObservableObject
     private ObservableCollection<Product> _products = new();
 
     [ObservableProperty]
+    private ObservableCollection<Product> _filteredProducts = new();
+
+    [ObservableProperty]
+    private string _searchQuery = string.Empty;
+
+    [ObservableProperty]
+    private string _notificationMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool _isNotificationVisible = false;
+
+    [ObservableProperty]
+    private SolidColorBrush _notificationColor = Brushes.Green;
+
+    private async Task ShowNotification(string message, bool isError = false)
+    {
+        await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            NotificationMessage = message;
+            NotificationColor = isError ? Brushes.Red : Brushes.Green;
+            IsNotificationVisible = true;
+        });
+
+        await Task.Delay(3000);
+
+        await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            IsNotificationVisible = false;
+        });
+    }
+
+    partial void OnSearchQueryChanged(string value)
+    {
+        ApplySearchFilter();
+    }
+
+    private void ApplySearchFilter()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            FilteredProducts = new ObservableCollection<Product>(Products);
+            return;
+        }
+
+        var query = SearchQuery.ToLower();
+        var exactBarcodeMatch = Products.FirstOrDefault(p => p.Barcode == SearchQuery);
+        
+        // Comportamiento escáner: coincidencia exacta de código de barras
+        if (exactBarcodeMatch != null)
+        {
+            AddToCart(exactBarcodeMatch);
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(() => 
+            {
+                SearchQuery = string.Empty;
+            });
+            return;
+        }
+
+        var matches = Products.Where(p => 
+            p.Name.ToLower().Contains(query) || 
+            p.Barcode.Contains(query)
+        ).ToList();
+
+        FilteredProducts = new ObservableCollection<Product>(matches);
+    }
+
+    [ObservableProperty]
     private decimal _total;
 
     [ObservableProperty]
@@ -97,6 +164,7 @@ public partial class MainViewModel : ObservableObject
         {
             Products.Add(p);
         }
+        ApplySearchFilter();
     }
 
     [RelayCommand]
@@ -107,7 +175,7 @@ public partial class MainViewModel : ObservableObject
         int currentQuantity = existingItem?.Quantity ?? 0;
         if (product.StockQuantity <= currentQuantity)
         {
-            System.Windows.MessageBox.Show($"Stock insuficiente. Solo hay {product.StockQuantity} disponibles.", "Aviso", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            _ = ShowNotification($"Stock insuficiente. Solo hay {product.StockQuantity} disponibles.", true);
             return;
         }
 
@@ -146,7 +214,7 @@ public partial class MainViewModel : ObservableObject
         {
             if (item.Product != null && item.Quantity >= item.Product.StockQuantity)
             {
-                System.Windows.MessageBox.Show($"Stock insuficiente. Solo hay {item.Product.StockQuantity} disponibles.", "Aviso", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                _ = ShowNotification($"Stock insuficiente. Solo hay {item.Product.StockQuantity} disponibles.", true);
                 return;
             }
             item.Quantity++;
@@ -212,7 +280,7 @@ public partial class MainViewModel : ObservableObject
         var activeShift = await _dbContext.CashRegisterShifts.FirstOrDefaultAsync(s => !s.IsClosed);
         if (activeShift == null)
         {
-            System.Windows.MessageBox.Show("No hay un turno abierto. Por favor, abra un turno desde 'Arqueo / Turno' antes de cobrar.", "Turno Cerrado", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            _ = ShowNotification("No hay un turno abierto. Por favor, abra un turno.", true);
             return;
         }
 
@@ -226,7 +294,7 @@ public partial class MainViewModel : ObservableObject
                 {
                     if (product.StockQuantity < item.Quantity)
                     {
-                        System.Windows.MessageBox.Show($"Stock insuficiente para {product.Name}. Compra no procesada.", "Aviso de Stock", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        _ = ShowNotification($"Stock insuficiente para {product.Name}.", true);
                         return; // Cancela el proceso
                     }
                     product.StockQuantity -= item.Quantity;
@@ -259,13 +327,13 @@ public partial class MainViewModel : ObservableObject
             
             Cart.Clear();
             UpdateTotal();
-            System.Windows.MessageBox.Show("Venta completada exitosamente.", "Éxito", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            _ = ShowNotification("Venta completada exitosamente.", false);
             
             LoadProductsCommand.Execute(null);
         }
         catch (System.Exception ex)
         {
-            System.Windows.MessageBox.Show($"Error al procesar la venta: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            _ = ShowNotification($"Error: {ex.Message}", true);
         }
     }
 
@@ -283,11 +351,11 @@ public partial class MainViewModel : ObservableObject
         try
         {
             _ticketPrinterService.TestPrinter();
-            System.Windows.MessageBox.Show("Se ha enviado una prueba de impresión. Verifique la impresora y los logs.", "Prueba de Impresión", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            _ = ShowNotification("Prueba de impresión enviada.", false);
         }
         catch (System.Exception ex)
         {
-            System.Windows.MessageBox.Show($"Error al enviar prueba de impresión: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            _ = ShowNotification($"Error de impresión: {ex.Message}", true);
         }
     }
 

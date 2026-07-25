@@ -99,8 +99,17 @@ public class SyncService
                     }
                     else
                     {
-                        _logger.LogWarning($"Fallo al sincronizar Mensaje ID {message.Id}. Sin conexión. Se reintentará luego.");
-                        break; 
+                        message.RetryCount++;
+                        if (message.RetryCount >= 3)
+                        {
+                            message.ProcessedAt = DateTime.Now; // Marcar como procesado/fallido para no atascar la cola
+                            _logger.LogError($"Mensaje ID {message.Id} descartado tras {message.RetryCount} intentos fallidos.");
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Fallo al sincronizar Mensaje ID {message.Id}. Intento {message.RetryCount}/3. Se reintentará.");
+                            break; 
+                        }
                     }
                 }
 

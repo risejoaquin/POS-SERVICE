@@ -9,5 +9,6 @@ public class OutboxMessage
     public DateTime? ProcessedAt { get; set; }
     
     
+    public int RetryCount { get; set; } = 0;
     public string TenantId { get; set; } = string.Empty;
 }
