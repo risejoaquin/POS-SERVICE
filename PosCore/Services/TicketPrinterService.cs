@@ -138,6 +138,50 @@ namespace PosCore.Services
             }
         }
 
+        
+        public void TestPrinter(string? portName = null)
+        {
+            portName ??= _settings.Printer.PortName;
+            try
+            {
+                if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                {
+                    Log.Warning("La impresión directa solo es compatible en Windows.");
+                    return;
+                }
+
+                using (var ms = new MemoryStream())
+                {
+                    ms.Write(ESC_INIT, 0, ESC_INIT.Length);
+                    ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
+                    ms.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
+                    WriteString(ms, $"--- {_settings.WhiteLabel.CompanyName.ToUpper()} ---\n");
+                    ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
+                    WriteString(ms, "\n*** PRUEBA DE IMPRESION ***\n\n");
+                    WriteString(ms, $"Fecha: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\n");
+                    WriteString(ms, $"Impresora configurada: {portName}\n");
+                    WriteString(ms, "--------------------------------\n");
+                    
+                    ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
+                    WriteString(ms, "Si puedes leer esto, la impresora\n");
+                    WriteString(ms, "esta configurada correctamente.\n\n\n\n\n");
+                    ms.Write(ESC_CUT, 0, ESC_CUT.Length);
+                    
+                    byte[] dataToPrint = ms.ToArray();
+                    bool success = RawPrinterHelper.SendBytesToPrinter(portName, dataToPrint);
+                    
+                    if (success)
+                        Log.Information($"Prueba de impresión exitosa en la impresora {portName}");
+                    else
+                        Log.Error($"Error de WinSpool al enviar prueba a la impresora {portName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, $"Error al intentar imprimir la prueba en {portName}");
+            }
+        }
+
         private void WriteString(MemoryStream ms, string text)
         {
             // Encoding 850 / UTF8 can be adjusted here if special characters appear wrong, 

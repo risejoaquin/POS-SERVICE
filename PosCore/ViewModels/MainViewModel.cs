@@ -269,11 +269,26 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
+
     [RelayCommand]
     private void OpenLogs()
     {
         var logsWindow = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Views.LogViewerWindow>(App.ServiceProvider!);
         logsWindow.ShowDialog();
+    }
+
+    [RelayCommand]
+    private void TestPrinter()
+    {
+        try
+        {
+            _ticketPrinterService.TestPrinter();
+            System.Windows.MessageBox.Show("Se ha enviado una prueba de impresión. Verifique la impresora y los logs.", "Prueba de Impresión", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+        }
+        catch (System.Exception ex)
+        {
+            System.Windows.MessageBox.Show($"Error al enviar prueba de impresión: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
     }
 
     private void UpdateTotal()
