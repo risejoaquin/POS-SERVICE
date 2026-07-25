@@ -19,7 +19,7 @@ public class LicenseSettings
 
 public class PrinterSettings
 {
-    public string PortName { get; set; } = "COM1";
+    public string PortName { get; set; } = "POS-80";
 }
 
 public class TenantSettings

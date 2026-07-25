@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO.Ports;
+using System.IO;
 using System.Linq;
 using System.Text;
 using PosCore.Models;
@@ -31,47 +31,55 @@ namespace PosCore.Services
             portName ??= _settings.Printer.PortName;
             try
             {
-                if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) return;
-
-                using (var serialPort = new SerialPort(portName, 9600, Parity.None, 8, StopBits.One))
+                if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) 
                 {
-                    serialPort.Open();
-                    serialPort.Write(ESC_INIT, 0, ESC_INIT.Length);
-                    serialPort.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
-                    serialPort.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
-                    WriteString(serialPort, $"--- {_settings.WhiteLabel.CompanyName.ToUpper()} ---\n");
-                    serialPort.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
-                    WriteString(serialPort, "Ticket de Venta\n");
-                    WriteString(serialPort, $"Fecha: {order.OrderDate:dd/MM/yyyy HH:mm:ss}\n");
-                    WriteString(serialPort, $"Ticket ID: {order.Id}\n");
-                    WriteString(serialPort, "--------------------------------\n");
+                    Log.Warning("La impresión directa solo es compatible en Windows.");
+                    return;
+                }
+
+                using (var ms = new MemoryStream())
+                {
+                    ms.Write(ESC_INIT, 0, ESC_INIT.Length);
+                    ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
+                    ms.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
+                    WriteString(ms, $"--- {_settings.WhiteLabel.CompanyName.ToUpper()} ---\n");
+                    ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
+                    WriteString(ms, "Ticket de Venta\n");
+                    WriteString(ms, $"Fecha: {order.OrderDate:dd/MM/yyyy HH:mm:ss}\n");
+                    WriteString(ms, $"Ticket ID: {order.Id}\n");
+                    WriteString(ms, "--------------------------------\n");
                     
-                    serialPort.Write(ESC_ALIGN_LEFT, 0, ESC_ALIGN_LEFT.Length);
+                    ms.Write(ESC_ALIGN_LEFT, 0, ESC_ALIGN_LEFT.Length);
                     foreach (var item in order.Items)
                     {
                         string productName = item.Product?.Name ?? "Producto Indefinido";
                         if (productName.Length > 20) productName = productName.Substring(0, 20);
                         
                         string line = $"{item.Quantity}x {productName.PadRight(20)} {item.SubTotal.ToString("C").PadLeft(8)}\n";
-                        WriteString(serialPort, line);
+                        WriteString(ms, line);
                     }
-                    WriteString(serialPort, "--------------------------------\n");
+                    WriteString(ms, "--------------------------------\n");
                     
-                    serialPort.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
-                    serialPort.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
-                    WriteString(serialPort, $"TOTAL: {order.TotalAmount.ToString("C")}\n");
-                    serialPort.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
+                    ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
+                    ms.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
+                    WriteString(ms, $"TOTAL: {order.TotalAmount.ToString("C")}\n");
+                    ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
                     
-                    WriteString(serialPort, "\n¡Gracias por su compra!\n\n\n\n");
-                    serialPort.Write(ESC_CUT, 0, ESC_CUT.Length);
-                    serialPort.Close();
+                    WriteString(ms, "\n¡Gracias por su compra!\n\n\n\n\n\n");
+                    ms.Write(ESC_CUT, 0, ESC_CUT.Length);
                     
-                    Log.Information($"Ticket impreso exitosamente para la orden {order.Id} en {portName}");
+                    byte[] dataToPrint = ms.ToArray();
+                    bool success = RawPrinterHelper.SendBytesToPrinter(portName, dataToPrint);
+                    
+                    if (success)
+                        Log.Information($"Ticket impreso exitosamente para la orden {order.Id} en la impresora {portName}");
+                    else
+                        Log.Error($"Error de WinSpool al enviar ticket de la orden {order.Id} a la impresora {portName}");
                 }
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"Error al intentar imprimir el ticket en el puerto {portName}");
+                Log.Error(ex, $"Error al intentar imprimir el ticket en la impresora {portName}");
             }
         }
 
@@ -80,39 +88,48 @@ namespace PosCore.Services
             portName ??= _settings.Printer.PortName;
             try
             {
-                if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) return;
-
-                using (var serialPort = new SerialPort(portName, 9600, Parity.None, 8, StopBits.One))
+                if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
                 {
-                    serialPort.Open();
-                    serialPort.Write(ESC_INIT, 0, ESC_INIT.Length);
-                    serialPort.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
-                    serialPort.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
-                    WriteString(serialPort, $"--- {_settings.WhiteLabel.CompanyName.ToUpper()} ---\n");
-                    WriteString(serialPort, "*** NOTA DE CREDITO ***\n");
-                    serialPort.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
-                    WriteString(serialPort, $"Fecha: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\n");
-                    WriteString(serialPort, $"Ref Ticket ID: {order.Id}\n");
-                    WriteString(serialPort, "--------------------------------\n");
+                    Log.Warning("La impresión directa solo es compatible en Windows.");
+                    return;
+                }
+
+                using (var ms = new MemoryStream())
+                {
+                    ms.Write(ESC_INIT, 0, ESC_INIT.Length);
+                    ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
+                    ms.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
+                    WriteString(ms, $"--- {_settings.WhiteLabel.CompanyName.ToUpper()} ---\n");
+                    WriteString(ms, "*** NOTA DE CREDITO ***\n");
+                    ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
+                    WriteString(ms, $"Fecha: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\n");
+                    WriteString(ms, $"Ref Ticket ID: {order.Id}\n");
+                    WriteString(ms, "--------------------------------\n");
                     
-                    serialPort.Write(ESC_ALIGN_LEFT, 0, ESC_ALIGN_LEFT.Length);
+                    ms.Write(ESC_ALIGN_LEFT, 0, ESC_ALIGN_LEFT.Length);
                     foreach (var item in order.Items)
                     {
                         string productName = item.Product?.Name ?? "Producto";
                         if (productName.Length > 20) productName = productName.Substring(0, 20);
                         
                         string line = $"{item.Quantity}x {productName.PadRight(20)} {item.SubTotal.ToString("C").PadLeft(8)}\n";
-                        WriteString(serialPort, line);
+                        WriteString(ms, line);
                     }
-
-                    WriteString(serialPort, "--------------------------------\n");
-                    serialPort.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
-                    serialPort.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
-                    WriteString(serialPort, $"TOTAL DEVUELTO: {order.TotalAmount.ToString("C")}\n");
-                    serialPort.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
-                    WriteString(serialPort, "\nComprobante de devolucion\n\n\n\n");
-                    serialPort.Write(ESC_CUT, 0, ESC_CUT.Length);
-                    serialPort.Close();
+                    WriteString(ms, "--------------------------------\n");
+                    ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
+                    ms.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
+                    WriteString(ms, $"TOTAL DEVUELTO: {order.TotalAmount.ToString("C")}\n");
+                    ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
+                    WriteString(ms, "\nComprobante de devolucion\n\n\n\n\n\n");
+                    ms.Write(ESC_CUT, 0, ESC_CUT.Length);
+                    
+                    byte[] dataToPrint = ms.ToArray();
+                    bool success = RawPrinterHelper.SendBytesToPrinter(portName, dataToPrint);
+                    
+                    if (success)
+                        Log.Information($"Nota de credito impresa exitosamente para la orden {order.Id} en la impresora {portName}");
+                    else
+                        Log.Error($"Error de WinSpool al enviar nota de credito de la orden {order.Id} a la impresora {portName}");
                 }
             }
             catch (Exception ex)
@@ -121,10 +138,12 @@ namespace PosCore.Services
             }
         }
 
-        private void WriteString(SerialPort port, string text)
+        private void WriteString(MemoryStream ms, string text)
         {
+            // Encoding 850 / UTF8 can be adjusted here if special characters appear wrong, 
+            // but ASCII is safest for standard ESC/POS
             byte[] bytes = Encoding.ASCII.GetBytes(text);
-            port.Write(bytes, 0, bytes.Length);
+            ms.Write(bytes, 0, bytes.Length);
         }
     }
 }

@@ -105,7 +105,7 @@ public partial class ReturnsViewModel : ObservableObject
                 {
                     try
                     {
-                        _ticketPrinterService.PrintCreditNote(order, "COM1");
+                        _ticketPrinterService.PrintCreditNote(order, "POS-80");
                     }
                     catch (Exception ex)
                     {
