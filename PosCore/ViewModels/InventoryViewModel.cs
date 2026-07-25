@@ -135,7 +135,7 @@ public partial class InventoryViewModel : ObservableObject
         }
         catch (System.Exception ex)
         {
-            MessageBox.Show($"Error al guardar producto: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"Error al guardar producto: {ex.Message}\nDetalle: {ex.InnerException?.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

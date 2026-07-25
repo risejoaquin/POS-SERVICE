@@ -3,6 +3,8 @@ using System.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using PosCore.Data;
 using PosCore.Models;
 using PosCore.Services;
@@ -34,7 +36,7 @@ public partial class App : Application
     }
     public static IServiceProvider? ServiceProvider { get; private set; }
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -142,7 +144,11 @@ public partial class App : Application
 
             try 
             {
-                dbContext.Database.Migrate();
+                try {
+                    dbContext.Database.EnsureCreated();
+                    var relCreator = dbContext.Database.GetService<IRelationalDatabaseCreator>();
+                    relCreator.CreateTables();
+                } catch { }
             } 
             catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 11 || ex.SqliteErrorCode == 26 || ex.Message.Contains("malformed"))
             {
@@ -180,7 +186,7 @@ public partial class App : Application
         if (isLoggedIn)
         {
             var licenseService = ServiceProvider.GetRequiredService<LicenseService>();
-            bool isLicenseValid = licenseService.ValidateLicenseAsync().GetAwaiter().GetResult();
+            bool isLicenseValid = await licenseService.ValidateLicenseAsync();
             if (!isLicenseValid)
             {
                 Application.Current.Shutdown();

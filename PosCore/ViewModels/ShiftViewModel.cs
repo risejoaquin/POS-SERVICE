@@ -58,9 +58,11 @@ public partial class ShiftViewModel : ObservableObject
     {
         if (CurrentShift == null) return;
 
-        var sales = await _dbContext.Orders
+        var salesList = await _dbContext.Orders
             .Where(o => o.OrderDate >= CurrentShift.OpenedAt && !o.IsReturned)
-            .SumAsync(o => o.TotalAmount);
+            .Select(o => o.TotalAmount)
+            .ToListAsync();
+        var sales = salesList.Sum();
 
         TotalSalesInShift = sales;
         CalculatedExpectedCash = CurrentShift.StartingCash + sales;

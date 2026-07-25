@@ -15,10 +15,14 @@
 
         <!-- Header -->
         <Border Grid.Row="0" Background="White" Padding="20" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="SpaceBetween">
-                <TextBlock Text="Devoluciones de Órdenes" FontSize="24" FontWeight="Bold" Foreground="#111827"/>
-                <Button Command="{Binding LoadOrdersCommand}" Content="Actualizar Lista" Padding="15,8" Background="#3B82F6" Foreground="White" BorderThickness="0" Cursor="Hand"/>
-            </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Devoluciones de Órdenes" FontSize="24" FontWeight="Bold" Foreground="#111827" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Command="{Binding LoadOrdersCommand}" Content="Actualizar Lista" Padding="15,8" Background="#3B82F6" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+            </Grid>
         </Border>
 
         <!-- Orders List -->

@@ -68,10 +68,14 @@
                     </Grid>
 
                     <Border Background="#F9FAFB" Padding="15" CornerRadius="4" Margin="0,0,0,20">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="SpaceBetween">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
                             <TextBlock Text="Efectivo Esperado:" FontSize="16" FontWeight="SemiBold" Foreground="#374151" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding CalculatedExpectedCash, StringFormat='C'}" FontSize="24" FontWeight="Bold" Foreground="#2563EB"/>
-                        </StackPanel>
+                            <TextBlock Grid.Column="1" Text="{Binding CalculatedExpectedCash, StringFormat='C'}" FontSize="24" FontWeight="Bold" Foreground="#2563EB" VerticalAlignment="Center"/>
+                        </Grid>
                     </Border>
 
                     <TextBlock Text="Efectivo Físico en Caja (Conteo):" FontSize="14" Foreground="#374151" Margin="0,0,0,5"/>

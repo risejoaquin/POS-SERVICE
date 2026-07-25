@@ -109,7 +109,7 @@ public partial class LogViewerViewModel : ObservableObject
             await Task.Delay(1500); // Simulated delay
             
             StatusMessage = "Logs enviados exitosamente a soporte.";
-            MessageBox.Show("Los logs han sido enviados exitosamente al equipo de soporte.", "Envío Exitoso", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show($"Los logs han sido procesados.\n(Modo Demo: Se ha simulado el envío a soporte.\nEl archivo generado temporalmente fue {zipPath})", "Envío Simulado", MessageBoxButton.OK, MessageBoxImage.Information);
             
             if (File.Exists(zipPath)) File.Delete(zipPath);
         }
