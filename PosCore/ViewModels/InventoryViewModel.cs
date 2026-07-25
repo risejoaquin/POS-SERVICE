@@ -169,7 +169,15 @@ public partial class InventoryViewModel : ObservableObject
         {
             try
             {
-                _dbContext.Products.Remove(productToDelete);
+                var productId = productToDelete.Id;
+                var outboxMessage = new PosCore.Models.OutboxMessage
+                {
+                    EventType = "ProductDeleted",
+                    Payload = System.Text.Json.JsonSerializer.Serialize(new { Id = productId, Barcode = productToDelete.Barcode }),
+                    CreatedAt = System.DateTime.Now
+                };
+                _dbContext.OutboxMessages.Add(outboxMessage);
+                await _dbContext.Products.Where(p => p.Id == productId).ExecuteDeleteAsync();
                 await _dbContext.SaveChangesAsync();
                 await LoadProductsAsync();
             }
