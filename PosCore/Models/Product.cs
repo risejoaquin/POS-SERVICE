@@ -7,6 +7,7 @@ public class Product
     public string Barcode { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public int StockQuantity { get; set; }
+    public int MinStockThreshold { get; set; } = 10;
     
     public DateTime LastUpdated { get; set; } = DateTime.Now;
     [System.Text.Json.Serialization.JsonIgnore]

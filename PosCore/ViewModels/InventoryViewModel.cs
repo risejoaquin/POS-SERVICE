@@ -59,7 +59,7 @@ public partial class InventoryViewModel : ObservableObject
     [RelayCommand]
     private void AddProduct()
     {
-        EditingProduct = new Product { StockQuantity = 0, Price = 0 };
+        EditingProduct = new Product { StockQuantity = 0, Price = 0, MinStockThreshold = 10 };
         IsEditing = true;
     }
 
@@ -75,6 +75,7 @@ public partial class InventoryViewModel : ObservableObject
             Barcode = SelectedProduct.Barcode,
             Price = SelectedProduct.Price,
             StockQuantity = SelectedProduct.StockQuantity,
+            MinStockThreshold = SelectedProduct.MinStockThreshold,
             TenantId = SelectedProduct.TenantId,
             LastUpdated = SelectedProduct.LastUpdated
         };
@@ -109,6 +110,7 @@ public partial class InventoryViewModel : ObservableObject
                     existing.Barcode = EditingProduct.Barcode;
                     existing.Price = EditingProduct.Price;
                     existing.StockQuantity = EditingProduct.StockQuantity;
+                    existing.MinStockThreshold = EditingProduct.MinStockThreshold;
                     existing.LastUpdated = DateTime.UtcNow; // Set explicitly before saving to outbox
                     _dbContext.Products.Update(existing);
                     

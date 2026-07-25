@@ -146,6 +146,7 @@ public partial class App : Application
             {
                 try {
                     dbContext.Database.EnsureCreated();
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN MinStockThreshold INTEGER NOT NULL DEFAULT 10;"); } catch { }
                     var relCreator = dbContext.Database.GetService<IRelationalDatabaseCreator>();
                     relCreator.CreateTables();
                 } catch { }

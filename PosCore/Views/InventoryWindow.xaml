@@ -44,6 +44,7 @@
                         <DataGridTextColumn Header="Nombre" Binding="{Binding Name}" Width="*"/>
                         <DataGridTextColumn Header="Precio" Binding="{Binding Price, StringFormat=C}" Width="100"/>
                         <DataGridTextColumn Header="Stock" Binding="{Binding StockQuantity}" Width="80"/>
+                        <DataGridTextColumn Header="Stock Mínimo" Binding="{Binding MinStockThreshold}" Width="100"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
@@ -63,7 +64,10 @@
                     <TextBox Text="{Binding EditingProduct.Price, UpdateSourceTrigger=PropertyChanged}" Height="30" Margin="0,0,0,15" Padding="5,0"/>
 
                     <TextBlock Text="Stock:" Margin="0,0,0,5" FontWeight="Medium"/>
-                    <TextBox Text="{Binding EditingProduct.StockQuantity, UpdateSourceTrigger=PropertyChanged}" Height="30" Margin="0,0,0,20" Padding="5,0"/>
+                    <TextBox Text="{Binding EditingProduct.StockQuantity, UpdateSourceTrigger=PropertyChanged}" Height="30" Margin="0,0,0,15" Padding="5,0"/>
+
+                    <TextBlock Text="Stock Mínimo (Alerta):" Margin="0,0,0,5" FontWeight="Medium"/>
+                    <TextBox Text="{Binding EditingProduct.MinStockThreshold, UpdateSourceTrigger=PropertyChanged}" Height="30" Margin="0,0,0,20" Padding="5,0"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Cancelar" Command="{Binding CancelEditCommand}" Width="90" Height="35" Background="#6C757D" Foreground="White" BorderThickness="0" Margin="0,0,10,0"/>

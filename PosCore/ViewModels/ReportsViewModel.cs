@@ -69,7 +69,8 @@ public partial class ReportsViewModel : ObservableObject
             .ThenInclude(i => i.Product)
             .ToListAsync();
 
-        var salesByDay = orders
+        var validOrders = orders.Where(o => !o.IsReturned).ToList();
+        var salesByDay = validOrders
             .GroupBy(o => o.OrderDate.Date)
             .Select(g => new DailySalesSummary
             {
@@ -97,7 +98,7 @@ public partial class ReportsViewModel : ObservableObject
         }
 
         // Top Products
-        var allItems = orders.SelectMany(o => o.Items).ToList();
+        var allItems = validOrders.SelectMany(o => o.Items).ToList();
         var topProds = allItems
             .GroupBy(i => i.ProductId)
             .Select(g => new ProductSaleSummary
