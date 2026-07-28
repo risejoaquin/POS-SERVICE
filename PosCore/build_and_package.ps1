@@ -26,13 +26,7 @@ if ($Sign) {
     Write-Host "Firma digital completada." -ForegroundColor Green
 }
 
-# 4. Crear instalador con Inno Setup
-Write-Host "Generando instalador con Inno Setup..." -ForegroundColor Yellow
-# Asumiendo que ISCC.exe está en el PATH
-# ISCC.exe "installer.iss"
-Write-Host "Instalador generado en .\Output" -ForegroundColor Green
-
-# 5. Empaquetar con Squirrel
+# 4. Generar Instalador y Paquetes de Actualización con Squirrel
 Write-Host "Generando paquete de actualización con Squirrel..." -ForegroundColor Yellow
 # Actualizar versión en nuspec temporalmente o pasarlo a nuget
 # nuget pack PosCore.nuspec -Version $Version

@@ -2,7 +2,7 @@
 
 ## Estado Actual de los Componentes
 
-*   ✅ **Instalador funcional (Inno Setup)**: Configurado. Tenemos `installer.iss` listo para empaquetar los binarios publicados.
+*   ✅ **Instalador y Actualizador (Squirrel)**: Configurado. Squirrel se encarga de generar el `Setup.exe` y gestionar las actualizaciones silenciosas. No usamos Inno Setup porque interfiere con los permisos de actualización de Squirrel.
 *   ✅ **Actualización con Squirrel**: Configurado. Se ha agregado `PosCore.nuspec` para crear el paquete NuGet y usar `--releasify`.
 *   ✅ **Firma Digital (SmartScreen)**: Integrada en el pipeline de GitHub Actions y en el script de PowerShell (comentado para que el usuario añada su certificado `.pfx`).
 *   ✅ **Automatización (CI/CD)**: Se agregó un flujo de GitHub Actions (`.github/workflows/build-release.yml`) que compila, empaqueta y genera los binarios listos en un entorno Windows limpio.
@@ -20,13 +20,7 @@ Hemos creado un script automatizado en PowerShell (`PosCore/build_and_package.ps
    ```
 *(La carpeta `publish` contendrá el ejecutable autónomo y sus recursos).*
 
-## Paso 2: Crear el Instalador .exe (Inno Setup)
-
-1. Descarga e instala [Inno Setup](https://jrsoftware.org/isinfo.php).
-2. Haz clic derecho sobre el archivo `PosCore/installer.iss` y selecciona **Compile**.
-3. Esto generará el instalador `SuperPOS_Setup_v1.0.exe` dentro de la carpeta `PosCore/Output`.
-
-## Paso 3: Empaquetar y Actualizar con Squirrel
+## Paso 2: Generar el Instalador y Paquetes de Actualización con Squirrel
 
 Squirrel se encarga de las actualizaciones silenciosas. Utiliza un feed web para saber si hay nuevas versiones.
 
@@ -46,7 +40,7 @@ Squirrel se encarga de las actualizaciones silenciosas. Utiliza un feed web para
 Para validar que las librerías nativas o el SDK no son una dependencia oculta:
 
 1. Levanta una VM con Windows 10/11 usando Hyper-V o VirtualBox. **No le instales el .NET SDK**.
-2. Copia `SuperPOS_Setup_v1.0.exe` a la VM y ejecútalo.
+2. Copia el archivo `Setup.exe` (generado en la carpeta `Releases`) a la VM y ejecútalo.
 3. Abre el POS. Como compilamos con `--self-contained true`, **debe ejecutarse sin pedir instalar .NET**.
 4. Para probar la actualización: Sube una versión `1.0.1` a tu servidor. Abre la app en la VM; el servicio `SyncService` (o el `CheckForUpdatesAsync`) descargará la versión silenciosamente en segundo plano. Al reiniciar, estará actualizado.
 
