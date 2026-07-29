@@ -115,10 +115,6 @@ using (var scope = app.Services.CreateScope())
         }
         catch { /* Columns probably already exist */ }
     }
-    catch
-    {
-        // Tables already exist or permission denied
-    }
 }
 
 // Seed Database in a separate scope to ensure clean connection
