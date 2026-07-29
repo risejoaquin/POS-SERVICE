@@ -26,7 +26,7 @@ namespace PosCore.Services
         private static readonly byte[] ESC_BOLD_OFF = new byte[] { 27, 69, 0 };
         private static readonly byte[] ESC_CUT = new byte[] { 29, 86, 66, 0 };
 
-        public void PrintTicket(Order order, string? portName = null)
+        public bool PrintTicket(Order order, string? portName = null)
         {
             portName ??= _settings.Printer.PortName;
             try
@@ -34,7 +34,7 @@ namespace PosCore.Services
                 if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) 
                 {
                     Log.Warning("La impresión directa solo es compatible en Windows.");
-                    return;
+                    return false;
                 }
 
                 using (var ms = new MemoryStream())
@@ -75,15 +75,17 @@ namespace PosCore.Services
                         Log.Information($"Ticket impreso exitosamente para la orden {order.Id} en la impresora {portName}");
                     else
                         Log.Error($"Error de WinSpool al enviar ticket de la orden {order.Id} a la impresora {portName}");
+                    return success;
                 }
             }
             catch (Exception ex)
             {
                 Log.Error(ex, $"Error al intentar imprimir el ticket en la impresora {portName}");
+                return false;
             }
         }
 
-        public void PrintCreditNote(Order order, string? portName = null)
+        public bool PrintCreditNote(Order order, string? portName = null)
         {
             portName ??= _settings.Printer.PortName;
             try
@@ -91,7 +93,7 @@ namespace PosCore.Services
                 if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
                 {
                     Log.Warning("La impresión directa solo es compatible en Windows.");
-                    return;
+                    return false;
                 }
 
                 using (var ms = new MemoryStream())
@@ -130,16 +132,18 @@ namespace PosCore.Services
                         Log.Information($"Nota de credito impresa exitosamente para la orden {order.Id} en la impresora {portName}");
                     else
                         Log.Error($"Error de WinSpool al enviar nota de credito de la orden {order.Id} a la impresora {portName}");
+                    return success;
                 }
             }
             catch (Exception ex)
             {
                 Log.Error(ex, $"Error al intentar imprimir la nota de credito en {portName}");
+                return false;
             }
         }
 
         
-        public void TestPrinter(string? portName = null)
+        public bool TestPrinter(string? portName = null)
         {
             portName ??= _settings.Printer.PortName;
             try
@@ -147,7 +151,7 @@ namespace PosCore.Services
                 if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
                 {
                     Log.Warning("La impresión directa solo es compatible en Windows.");
-                    return;
+                    return false;
                 }
 
                 using (var ms = new MemoryStream())
@@ -174,11 +178,13 @@ namespace PosCore.Services
                         Log.Information($"Prueba de impresión exitosa en la impresora {portName}");
                     else
                         Log.Error($"Error de WinSpool al enviar prueba a la impresora {portName}");
+                    return success;
                 }
             }
             catch (Exception ex)
             {
                 Log.Error(ex, $"Error al intentar imprimir la prueba en {portName}");
+                return false;
             }
         }
 

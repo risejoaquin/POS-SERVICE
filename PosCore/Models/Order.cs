@@ -14,6 +14,8 @@ public class Order
     
     public DateTime LastUpdated { get; set; } = DateTime.Now;
     public bool IsReturned { get; set; } = false;
+    public string ReturnReason { get; set; } = string.Empty;
+    public string AuthorizedBy { get; set; } = string.Empty;
     [System.Text.Json.Serialization.JsonIgnore]
     public string TenantId { get; set; } = string.Empty;
 }

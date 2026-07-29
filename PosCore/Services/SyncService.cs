@@ -20,6 +20,20 @@ public class SyncService
     private DateTime _lastSyncTime = DateTime.MinValue;
     
     public event Action? OnSyncCompleted;
+    public event Action<bool>? OnNetworkStatusChanged;
+    private bool _isOffline = false;
+    public bool IsOffline
+    {
+        get => _isOffline;
+        private set
+        {
+            if (_isOffline != value)
+            {
+                _isOffline = value;
+                System.Windows.Application.Current.Dispatcher.Invoke(() => OnNetworkStatusChanged?.Invoke(_isOffline));
+            }
+        }
+    }
 
     public SyncService(IServiceProvider serviceProvider, ILogger<SyncService> logger)
     {
@@ -116,6 +130,7 @@ public class SyncService
                 await dbContext.SaveChangesAsync();
             }
             
+            IsOffline = false;
             // Notificar a la UI si hubo cambios o simplemente al terminar un ciclo de sync exitoso
             // Para evitar re-renders excesivos, idealmente solo lo llamamos si hubo pendingMessages o cloudProducts, pero por simplicidad lo llamamos siempre que termine sin error
             System.Windows.Application.Current.Dispatcher.Invoke(() => 
@@ -126,6 +141,7 @@ public class SyncService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error crítico durante el proceso de sincronización.");
+            IsOffline = true;
         }
         finally
         {
@@ -187,6 +203,8 @@ public class SyncService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al traer actualizaciones del servidor.");
+            IsOffline = true;
+            throw;
         }
     }
 }

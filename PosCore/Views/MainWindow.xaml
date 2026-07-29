@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:PosCore.Views"
         xmlns:vm="clr-namespace:PosCore.ViewModels"
         mc:Ignorable="d"
-        Title="{Binding Settings.WhiteLabel.CompanyName, StringFormat='{}POS - {0} (Modo Offline)'}" Height="600" Width="900" WindowStartupLocation="CenterScreen"
+        Title="{Binding Settings.WhiteLabel.CompanyName, StringFormat='{}POS - {0}'}" Height="600" Width="900" WindowStartupLocation="CenterScreen"
         FocusManager.FocusedElement="{Binding ElementName=SearchBox}">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
@@ -18,13 +18,34 @@
     </Window.InputBindings>
     <Grid Margin="10">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*"/>
-            <ColumnDefinition Width="1*"/>
-        </Grid.ColumnDefinitions>
+        
+        <!-- Top Header for Network & Sync Status -->
+        <Border Background="{Binding PrimaryColorBrush}" CornerRadius="4" Padding="10,5" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Settings.WhiteLabel.CompanyName, StringFormat='{}☕ {0}'}" FontSize="16" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse Width="10" Height="10" Fill="{Binding SyncStatusColor}" Margin="0,0,5,0" />
+                    <TextBlock Text="{Binding SyncStatusMessage}" Foreground="White" FontSize="14" FontWeight="SemiBold"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
 
         <!-- Área de Productos -->
         <GroupBox Header="Catálogo de Productos" Grid.Row="0" Grid.Column="0" Margin="0,0,10,10" FontSize="14">
@@ -123,24 +144,54 @@
                     </ListView.ItemTemplate>
                 </ListView>
 
-                <!-- Totales -->
+                <!-- Totales y Descuentos -->
                 <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="0,1,0,0" Padding="0,10">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <TextBlock Text="Total:" FontSize="20" FontWeight="Bold" Margin="0,0,10,10" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Total, StringFormat=C}" FontSize="24" FontWeight="Bold" Foreground="#28A745" VerticalAlignment="Center"/>
+                    <StackPanel HorizontalAlignment="Right">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,5">
+                            <TextBlock Text="Subtotal:" FontSize="16" Foreground="Gray" Margin="0,0,10,0"/>
+                            <TextBlock Text="{Binding SubTotal, StringFormat=C}" FontSize="16" Foreground="Gray"/>
+                        </StackPanel>
+                        
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,5" Visibility="{Binding IsDiscountApplied, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <!-- Si DiscountAmount > 0 se muestra -->
+                            <TextBlock Text="Promoción Aplicada:" FontSize="14" Foreground="#F59E0B" Margin="0,0,10,0"/>
+                            <TextBlock Text="{Binding DiscountAmount, StringFormat='-{0:C}'}" FontSize="14" Foreground="#F59E0B" FontWeight="Bold"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0">
+                            <TextBlock Text="Total:" FontSize="20" FontWeight="Bold" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Total, StringFormat=C}" FontSize="24" FontWeight="Bold" Foreground="#28A745" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
-                <!-- Botón de Cobro -->
-                <Button Grid.Row="2" Content="Completar Venta (F12)" 
+                <!-- Acciones de Orden -->
+                <Grid Grid.Row="2" Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="⏸ Suspender" Command="{Binding SuspendOrderCommand}" Margin="0,0,5,0" Height="40" Background="#F59E0B" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand"/>
+                        <Button Grid.Column="1" Content="▶ Retomar Orden" Command="{Binding ResumeOrderCommand}" Margin="5,0,0,0" Height="40" Background="#3B82F6" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand"/>
+                    </Grid>
+
+                    <!-- Botón de Cobro -->
+                    <Button Grid.Row="1" Content="Completar Venta (F12)" 
                         Command="{Binding CheckoutCommand}" 
                         Height="50" FontSize="18" Background="{Binding PrimaryColorBrush}" Foreground="White" FontWeight="Bold" 
                         BorderThickness="0" Cursor="Hand" Margin="0,10,0,0"/>
             </Grid>
         </GroupBox>
 
+    </Grid>
         <!-- Módulos Opcionales -->
-        <WrapPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,10,0,0">
+        <WrapPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,10,0,0">
             <Button Content="Gestión de Mesas" Width="150" Height="40" Margin="0,0,10,10" 
                     Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand"
                     Visibility="{Binding Settings.Modules.EnableTableManagement, Converter={StaticResource BooleanToVisibilityConverter}}"/>
@@ -157,7 +208,7 @@
         </WrapPanel>
 
         <!-- Toast Notification Overlay -->
-        <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" 
+        <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="0" Grid.ColumnSpan="2" 
                 VerticalAlignment="Bottom" HorizontalAlignment="Center"
                 Margin="0,0,0,20" Padding="20,15" CornerRadius="8"
                 Background="{Binding NotificationColor}"

@@ -14,6 +14,17 @@ namespace PosCore.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     private readonly PosDbContext _dbContext;
+
+    public static ObservableCollection<ObservableCollection<OrderItem>> SuspendedOrders { get; set; } = new();
+
+    [ObservableProperty]
+    private decimal _discountAmount = 0m;
+
+    [ObservableProperty]
+    private bool _isDiscountApplied = false;
+
+    [ObservableProperty]
+    private decimal _subTotal = 0m;
     private readonly IApiService _apiService;
 
     // Propiedades Observables
@@ -117,6 +128,15 @@ public partial class MainViewModel : ObservableObject
                 LoadProductsCommand.Execute(null);
             }
         };
+        _syncService.OnNetworkStatusChanged += (isOffline) =>
+        {
+            IsOffline = isOffline;
+            SyncStatusMessage = isOffline ? "Modo Offline (Reintentando...)" : "Sincronizado";
+            SyncStatusColor = isOffline ? Brushes.Orange : Brushes.Green;
+        };
+        IsOffline = _syncService.IsOffline;
+        SyncStatusMessage = IsOffline ? "Modo Offline (Reintentando...)" : "Sincronizado";
+        SyncStatusColor = IsOffline ? Brushes.Orange : Brushes.Green;
         
         try {
             var color = (Color)ColorConverter.ConvertFromString(_settings.WhiteLabel.PrimaryColor);
@@ -223,6 +243,27 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    [RelayCommand]
+    [RelayCommand]
+    private void ModifyItem(OrderItem item)
+    {
+        if (item != null)
+        {
+            var modifierWindow = new PosCore.Views.ItemModifierWindow(item);
+            if (modifierWindow.ShowDialog() == true)
+            {
+                // Force UI update for the cart by replacing the item to trigger property changed
+                var index = Cart.IndexOf(item);
+                if (index >= 0) {
+                    Cart.RemoveAt(index);
+                    Cart.Insert(index, item);
+                }
+                UpdateTotal();
+            }
+        }
+    }
+
+    [RelayCommand]
     private void DecreaseQuantity(OrderItem item)
     {
         if (item != null)
@@ -284,6 +325,13 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
+        // Mostrar Modal de Pago (Lealtad y Método)
+        var paymentWindow = new PosCore.Views.PaymentWindow(Total);
+        if (paymentWindow.ShowDialog() != true)
+        {
+            return;
+        }
+
         try
         {
             // Validar stock antes de continuar
@@ -339,6 +387,42 @@ public partial class MainViewModel : ObservableObject
 
 
     [RelayCommand]
+    private void SuspendOrder()
+    {
+        if (!Cart.Any()) return;
+        
+        // Add current cart to suspended
+        var suspendedCart = new ObservableCollection<OrderItem>(Cart);
+        SuspendedOrders.Add(suspendedCart);
+        
+        Cart.Clear();
+        UpdateTotal();
+        _ = ShowNotification("Orden suspendida exitosamente.", false);
+    }
+
+    [RelayCommand]
+    private void ResumeOrder()
+    {
+        if (Cart.Any())
+        {
+            _ = ShowNotification("Hay una orden en curso. Ciérrela o suspéndala antes de retomar otra.", true);
+            return;
+        }
+
+        var resumeWindow = new PosCore.Views.SuspendedOrdersWindow(SuspendedOrders);
+        if (resumeWindow.ShowDialog() == true && resumeWindow.SelectedOrder != null)
+        {
+            foreach (var item in resumeWindow.SelectedOrder)
+            {
+                Cart.Add(item);
+            }
+            SuspendedOrders.Remove(resumeWindow.SelectedOrder);
+            UpdateTotal();
+            _ = ShowNotification("Orden retomada.", false);
+        }
+    }
+
+    [RelayCommand]
     private void OpenLogs()
     {
         var logsWindow = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Views.LogViewerWindow>(App.ServiceProvider!);
@@ -350,8 +434,18 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            _ticketPrinterService.TestPrinter();
-            _ = ShowNotification("Prueba de impresión enviada.", false);
+            bool success = _ticketPrinterService.TestPrinter();
+            if (!success)
+            {
+                IsHardwareError = true;
+                HardwareErrorMessage = "Error de impresora detectado durante prueba.";
+                _ = ShowNotification("Fallo al imprimir", true);
+            }
+            else
+            {
+                IsHardwareError = false;
+                _ = ShowNotification("Prueba de impresión enviada.", false);
+            }
         }
         catch (System.Exception ex)
         {
@@ -361,6 +455,18 @@ public partial class MainViewModel : ObservableObject
 
     private void UpdateTotal()
     {
-        Total = Cart.Sum(i => i.SubTotal);
+        SubTotal = Cart.Sum(i => i.SubTotal);
+        // Simulate auto discount evaluation (e.g. 10% off for combo if more than 2 items)
+        if (Cart.Count >= 2)
+        {
+            DiscountAmount = SubTotal * 0.10m;
+            IsDiscountApplied = true;
+        }
+        else
+        {
+            DiscountAmount = 0;
+            IsDiscountApplied = false;
+        }
+        Total = SubTotal - DiscountAmount;
     }
 }

@@ -105,6 +105,18 @@ using (var scope = app.Services.CreateScope())
     }
     catch
     {
+        // Tables already exist, try to add new columns for updates
+        try
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"ReturnReason\" text DEFAULT '';");
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"AuthorizedBy\" text DEFAULT '';");
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Notes\" text DEFAULT '';");
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Discount\" numeric DEFAULT 0;");
+        }
+        catch { /* Columns probably already exist */ }
+    }
+    catch
+    {
         // Tables already exist or permission denied
     }
 }

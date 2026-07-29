@@ -15,7 +15,11 @@ public class OrderItem
     public decimal UnitPrice { get; set; }
     
     // Propiedad calculada
-    public decimal SubTotal => Quantity * UnitPrice;
+    public decimal Discount { get; set; } = 0;
+    public string Notes { get; set; } = string.Empty;
+    public bool HasNotes => !string.IsNullOrWhiteSpace(Notes);
+    public bool HasDiscount => Discount > 0;
+    public decimal SubTotal => (Quantity * UnitPrice) - Discount;
     
     public DateTime LastUpdated { get; set; } = DateTime.Now;
     [System.Text.Json.Serialization.JsonIgnore]

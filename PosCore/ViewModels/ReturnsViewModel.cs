@@ -28,6 +28,20 @@ public partial class ReturnsViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void ReprintOrder(Order order)
+    {
+        if (order == null) return;
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+        {
+            bool success = _ticketPrinterService.PrintTicket(order);
+            if (success)
+                MessageBox.Show("Ticket enviado a la impresora.", "Reimpresión", MessageBoxButton.OK, MessageBoxImage.Information);
+            else
+                MessageBox.Show("Error al imprimir el ticket. Revise la impresora.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    [RelayCommand]
     private async Task LoadOrdersAsync()
     {
         var orders = await _dbContext.Orders
@@ -63,6 +77,8 @@ public partial class ReturnsViewModel : ObservableObject
             {
                 // Marcar como devuelta
                 order.IsReturned = true;
+                order.ReturnReason = reasonWindow.SelectedReason;
+                order.AuthorizedBy = overrideWindow.AuthorizedBy;
                 order.LastUpdated = DateTime.Now;
 
                 // Devolver stock

@@ -151,6 +151,10 @@ public partial class App : Application
                     dbContext.Database.EnsureCreated();
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN MinStockThreshold INTEGER NOT NULL DEFAULT 10;"); } catch { }
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OutboxMessages ADD COLUMN RetryCount INTEGER NOT NULL DEFAULT 0;"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN ReturnReason TEXT NOT NULL DEFAULT '';"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN AuthorizedBy TEXT NOT NULL DEFAULT '';"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OrderItem ADD COLUMN Notes TEXT NOT NULL DEFAULT '';"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OrderItem ADD COLUMN Discount TEXT NOT NULL DEFAULT '0.0';"); } catch { }
                     var relCreator = dbContext.Database.GetService<IRelationalDatabaseCreator>();
                     relCreator.CreateTables();
                 } catch { }
