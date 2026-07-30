@@ -13,10 +13,10 @@ public class Order
     public bool IsSynced { get; set; } = false;
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
     public bool IsReturned { get; set; } = false;
-    public string ReturnReason { get; set; } = string.Empty;
-    public string AuthorizedBy { get; set; } = string.Empty;
-    public string PaymentDetails { get; set; } = string.Empty;
+    public string? ReturnReason { get; set; } = string.Empty;
+    public string? AuthorizedBy { get; set; } = string.Empty;
+    public string? PaymentDetails { get; set; } = string.Empty;
 
-    public string TenantId { get; set; } = string.Empty;
+    public string? TenantId { get; set; } = string.Empty;
     public List<OrderItem> Items { get; set; } = new();
 }
