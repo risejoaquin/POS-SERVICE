@@ -17,6 +17,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<PosServer.Services.ITenantService, PosServer.Services.TenantService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -123,6 +126,10 @@ using (var scope = app.Services.CreateScope())
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" ADD COLUMN \"Role\" text DEFAULT 'Admin';"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Notes\" text DEFAULT '';"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Discount\" numeric DEFAULT 0;"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Products\" ADD COLUMN \"CustomAttributes\" jsonb DEFAULT '{}';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"CustomAttributes\" jsonb DEFAULT '{}';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"CustomAttributes\" jsonb DEFAULT '{}';"); } catch { }
+
         try { 
             dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"Licenses\" (\"Id\" serial PRIMARY KEY, \"LicenseKey\" text, \"TenantId\" text, \"Description\" text, \"IsActive\" boolean, \"MaxTerminals\" integer, \"ValidUntil\" timestamp with time zone, \"CreatedAt\" timestamp with time zone)"); 
         } catch { }

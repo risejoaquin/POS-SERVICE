@@ -170,6 +170,11 @@ public partial class App : Application
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN TaxAmount TEXT NOT NULL DEFAULT '0.0';"); } catch { }
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OrderItem ADD COLUMN Notes TEXT NOT NULL DEFAULT '';"); } catch { }
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OrderItem ADD COLUMN Discount TEXT NOT NULL DEFAULT '0.0';"); } catch { }
+
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN CustomAttributes TEXT NOT NULL DEFAULT '{}';"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN CustomAttributes TEXT NOT NULL DEFAULT '{}';"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OrderItem ADD COLUMN CustomAttributes TEXT NOT NULL DEFAULT '{}';"); } catch { }
+
                     try {
                         dbContext.Database.ExecuteSqlRaw(@"
                             CREATE TABLE IF NOT EXISTS CashMovements (

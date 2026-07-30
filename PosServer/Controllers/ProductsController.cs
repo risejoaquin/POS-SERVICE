@@ -62,9 +62,12 @@ public class ProductsController : ControllerBase
         {
             if (product.LastUpdated > existing.LastUpdated)
             {
-                existing.Name = product.Name;
+                                existing.Name = product.Name;
                 existing.Price = product.Price;
                 existing.StockQuantity = product.StockQuantity;
+                existing.Category = product.Category;
+                existing.MinStockThreshold = product.MinStockThreshold;
+                existing.CustomAttributes = product.CustomAttributes;
                 existing.LastUpdated = product.LastUpdated;
                 _context.Products.Update(existing);
             }

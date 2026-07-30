@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
 using System.Linq;
 using System.Threading;
@@ -36,6 +39,16 @@ public class PosDbContext : DbContext
         
         modelBuilder.Entity<Order>()
             .HasIndex(o => o.OrderDate);
+
+        var dictConverter = new ValueConverter<Dictionary<string, object>, string>(
+            v => JsonSerializer.Serialize(v, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
+            v => JsonSerializer.Deserialize<Dictionary<string, object>>(v, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? new Dictionary<string, object>()
+        );
+
+        modelBuilder.Entity<Product>().Property(e => e.CustomAttributes).HasConversion(dictConverter);
+        modelBuilder.Entity<Order>().Property(e => e.CustomAttributes).HasConversion(dictConverter);
+        modelBuilder.Entity<OrderItem>().Property(e => e.CustomAttributes).HasConversion(dictConverter);
+
             
         // Multi-Tenant: Filtro Global
         modelBuilder.Entity<Product>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);

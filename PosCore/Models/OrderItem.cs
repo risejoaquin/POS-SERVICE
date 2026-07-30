@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 namespace PosCore.Models;
 
 public class OrderItem
@@ -24,4 +25,5 @@ public class OrderItem
     public DateTime LastUpdated { get; set; } = DateTime.Now;
     [System.Text.Json.Serialization.JsonIgnore]
     public string TenantId { get; set; } = string.Empty;
+    public Dictionary<string, object> CustomAttributes { get; set; } = new();
 }

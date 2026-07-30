@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 namespace PosServer.Models;
 public class OrderItem
@@ -17,4 +18,5 @@ public class OrderItem
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 
     public string? TenantId { get; set; } = string.Empty;
+    public Dictionary<string, object> CustomAttributes { get; set; } = new();
 }
