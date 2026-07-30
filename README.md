@@ -44,7 +44,7 @@ Para obtener instrucciones detalladas sobre instalación, despliegue y uso, cons
 *   [Guía de Pruebas y CI/CD](./INSTALLER_TESTING_GUIDE.md)
 
 ## 🚀 Novedades Recientes
-*   **Compatibilidad Supabase**: Se ha solucionado el error 500 en Login y otros endpoints, añadiendo compatibilidad nativa con Transaction Pooler (pgbouncer) de Supabase en `PosServer` desactivando Prepared Statements cuando se detecta el pooler.
+*   **Compatibilidad Supabase**: Se ha solucionado el error 500 en Login y sincronización, corrigiendo el guardado de fechas (UTC/Local) en PostgreSQL (`Npgsql.EnableLegacyTimestampBehavior`) y compatibilidad con Transaction Pooler, añadiendo compatibilidad nativa con Transaction Pooler (pgbouncer) de Supabase en `PosServer` desactivando Prepared Statements cuando se detecta el pooler.
 *   **Sincronización Inteligente**: Corrección de bugs en Backoff y sincronización de OutboxMessages.
 
 ## 💻 Cómo Ejecutar en Desarrollo
