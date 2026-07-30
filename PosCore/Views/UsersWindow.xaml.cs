@@ -3,9 +3,9 @@ using PosCore.ViewModels;
 
 namespace PosCore.Views
 {
-    public partial class ShiftWindow : Window
+    public partial class UsersWindow : Window
     {
-        public ShiftWindow(ShiftViewModel viewModel)
+        public UsersWindow(UsersViewModel viewModel)
         {
             InitializeComponent();
             DataContext = viewModel;

@@ -31,8 +31,24 @@ namespace PosCore.Views
                     MessageBox.Show("El descuento no puede ser mayor al total del producto.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
+                
+                if (discount > 0)
+                {
+                    var sessionManager = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Services.SessionManager>(App.ServiceProvider!);
+                    if (sessionManager.Role != "Admin")
+                    {
+                        var dbContext = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Data.PosDbContext>(App.ServiceProvider!);
+                        var overrideWindow = new ManagerOverrideWindow($"Aplicar descuento de {discount:C}", dbContext);
+                        if (overrideWindow.ShowDialog() != true || !overrideWindow.IsAuthorized)
+                        {
+                            return; // Cancelled or denied
+                        }
+                    }
+                }
+
                 _item.Notes = NotesBox.Text;
                 _item.Discount = discount;
+
                 DialogResult = true;
                 Close();
             }

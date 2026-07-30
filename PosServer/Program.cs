@@ -37,6 +37,15 @@ if (connString.StartsWith("postgres://") || connString.StartsWith("postgresql://
     connString = $"Host={uri.Host};Port={(uri.IsDefaultPort ? 5432 : uri.Port)};Database={uri.LocalPath.TrimStart('/')};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=True";
 }
 
+if (connString.Contains("supabase.com") || connString.Contains("pooler"))
+{
+    // Fix for Supabase Transaction Pooler (pgbouncer) which breaks EF Core Prepared Statements
+    if (!connString.Contains("Max Auto Prepare"))
+    {
+        connString += ";Max Auto Prepare=0;Pooling=false;";
+    }
+}
+
 builder.Services.AddDbContext<CentralDbContext>(options =>
     options.UseNpgsql(connString, o => o.CommandTimeout(120)));
 
@@ -106,14 +115,14 @@ using (var scope = app.Services.CreateScope())
     catch
     {
         // Tables already exist, try to add new columns for updates
-        try
-        {
-            dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"ReturnReason\" text DEFAULT '';");
-            dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"AuthorizedBy\" text DEFAULT '';");
-            dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Notes\" text DEFAULT '';");
-            dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Discount\" numeric DEFAULT 0;");
-        }
-        catch { /* Columns probably already exist */ }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"ReturnReason\" text DEFAULT '';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"AuthorizedBy\" text DEFAULT '';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"PaymentDetails\" text DEFAULT '';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"SubTotal\" numeric DEFAULT 0;"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"TaxAmount\" numeric DEFAULT 0;"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" ADD COLUMN \"Role\" text DEFAULT 'Admin';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Notes\" text DEFAULT '';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Discount\" numeric DEFAULT 0;"); } catch { }
     }
 }
 
@@ -128,8 +137,16 @@ using (var scope = app.Services.CreateScope())
             dbContext.Users.Add(new User
             {
                 Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
-                TenantId = "TENANT_001"
+                Pin = "admin123",
+                TenantId = "TENANT_001",
+                Role = "Admin"
+            });
+            dbContext.Users.Add(new User
+            {
+                Username = "cajero",
+                Pin = "cajero123",
+                TenantId = "TENANT_001",
+                Role = "Cajero"
             });
             dbContext.SaveChanges();
         }

@@ -8,6 +8,7 @@ public class Product
     public decimal Price { get; set; }
     public int StockQuantity { get; set; }
     public int MinStockThreshold { get; set; } = 10;
+    public string Category { get; set; } = "General";
     
     public DateTime LastUpdated { get; set; } = DateTime.Now;
     [System.Text.Json.Serialization.JsonIgnore]

@@ -1,42 +1,75 @@
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
 namespace PosCore.Views
 {
+    public class PaymentEntry
+    {
+        public string Method { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+    }
+
     public partial class PaymentWindow : Window
     {
         public bool IsPaid { get; private set; } = false;
         public decimal Total { get; }
         
+        public ObservableCollection<PaymentEntry> Payments { get; set; } = new();
+
         private string _inputBuffer = "";
         private decimal _tendered = 0m;
 
         public PaymentWindow(decimal total)
         {
+            this.KeyDown += PaymentWindow_KeyDown;
+
             InitializeComponent();
             Total = total;
             TotalText.Text = total.ToString("C");
-            UpdateTenderedText();
             
-            CustomerPhoneBox.GotFocus += (s, e) => {
-                if (CustomerPhoneBox.Text == "Teléfono del cliente...")
-                    CustomerPhoneBox.Text = "";
-            };
-            CustomerPhoneBox.LostFocus += (s, e) => {
-                if (string.IsNullOrWhiteSpace(CustomerPhoneBox.Text))
-                    CustomerPhoneBox.Text = "Teléfono del cliente...";
-            };
+            PaymentsList.ItemsSource = Payments;
+            
+            UpdateState();
         }
 
-        private void UpdateTenderedText()
+        
+        private void PaymentWindow_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
+            if (e.Key >= System.Windows.Input.Key.D0 && e.Key <= System.Windows.Input.Key.D9)
+            {
+                int val = (int)e.Key - (int)System.Windows.Input.Key.D0;
+                if (_inputBuffer.Length < 8) { _inputBuffer += val.ToString(); UpdateState(); }
+            }
+            else if (e.Key >= System.Windows.Input.Key.NumPad0 && e.Key <= System.Windows.Input.Key.NumPad9)
+            {
+                int val = (int)e.Key - (int)System.Windows.Input.Key.NumPad0;
+                if (_inputBuffer.Length < 8) { _inputBuffer += val.ToString(); UpdateState(); }
+            }
+            else if (e.Key == System.Windows.Input.Key.Back)
+            {
+                if (_inputBuffer.Length > 0) { _inputBuffer = _inputBuffer.Substring(0, _inputBuffer.Length - 1); UpdateState(); }
+            }
+            else if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                BtnPay_Click(this, null!);
+            }
+            else if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                BtnCancel_Click(this, null!);
+            }
+        }
+
+        private void UpdateState()
+        {
+            // Parse input buffer
             if (string.IsNullOrEmpty(_inputBuffer))
             {
                 _tendered = 0;
             }
             else
             {
-                // The input buffer is in cents (e.g. "1500" = 15.00)
                 if (decimal.TryParse(_inputBuffer, out decimal cents))
                 {
                     _tendered = cents / 100m;
@@ -45,9 +78,16 @@ namespace PosCore.Views
 
             TenderedText.Text = _tendered.ToString("C");
 
-            if (_tendered >= Total && Total > 0)
+            // Calculate totals
+            decimal totalPaid = Payments.Sum(p => p.Amount);
+            decimal remaining = Total - totalPaid;
+
+            if (remaining < 0) remaining = 0;
+            RemainingText.Text = remaining.ToString("C");
+
+            if (totalPaid >= Total && Total > 0)
             {
-                ChangeText.Text = $"Cambio: {(_tendered - Total).ToString("C")}";
+                ChangeText.Text = $"Cambio: {(totalPaid - Total).ToString("C")}";
                 ChangeText.Visibility = Visibility.Visible;
             }
             else
@@ -60,10 +100,10 @@ namespace PosCore.Views
         {
             if (sender is Button btn && btn.Content is string num)
             {
-                if (_inputBuffer.Length < 8) // max digits
+                if (_inputBuffer.Length < 8)
                 {
                     _inputBuffer += num;
-                    UpdateTenderedText();
+                    UpdateState();
                 }
             }
         }
@@ -71,28 +111,52 @@ namespace PosCore.Views
         private void BtnClear_Click(object sender, RoutedEventArgs e)
         {
             _inputBuffer = "";
-            UpdateTenderedText();
+            UpdateState();
         }
         
         private void BtnExact_Click(object sender, RoutedEventArgs e)
         {
-            _tendered = Total;
-            _inputBuffer = ((long)(Total * 100)).ToString();
-            UpdateTenderedText();
+            decimal totalPaid = Payments.Sum(p => p.Amount);
+            decimal remaining = Total - totalPaid;
+            if (remaining > 0)
+            {
+                _tendered = remaining;
+                _inputBuffer = ((long)(remaining * 100)).ToString();
+                UpdateState();
+            }
         }
 
-        private void BtnSearchCustomer_Click(object sender, RoutedEventArgs e)
+        private void BtnAddPayment_Click(object sender, RoutedEventArgs e)
         {
-            var phone = CustomerPhoneBox.Text.Trim();
-            if (phone.Length >= 10 && phone != "Teléfono del cliente...")
+            if (sender is Button btn && btn.Tag is string method)
             {
-                CustomerInfoPanel.Visibility = Visibility.Visible;
-                CustomerNameText.Text = "Cliente: Cliente Leal Frecuente";
-                CustomerPointsText.Text = "Puntos disponibles: 250 pts ($25.00)";
+                if (_tendered <= 0)
+                {
+                    // Si no hay monto ingresado, sugerir el restante
+                    decimal totalPaid = Payments.Sum(p => p.Amount);
+                    decimal remaining = Total - totalPaid;
+                    if (remaining > 0)
+                    {
+                        _tendered = remaining;
+                    }
+                    else
+                    {
+                        return; // Ya está pagado
+                    }
+                }
+
+                Payments.Add(new PaymentEntry { Method = method, Amount = _tendered });
+                _inputBuffer = ""; // reset buffer
+                UpdateState();
             }
-            else
+        }
+
+        private void BtnRemovePayment_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is PaymentEntry entry)
             {
-                MessageBox.Show("Ingrese un número de teléfono válido.", "No encontrado", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Payments.Remove(entry);
+                UpdateState();
             }
         }
 
@@ -102,17 +166,41 @@ namespace PosCore.Views
             Close();
         }
 
+        
+        public decimal TipAmount { get; private set; } = 0;
+        private bool _isProcessing = false;
+        
+        private void BtnAddTip_Click(object sender, RoutedEventArgs e)
+        {
+            if (_tendered > 0)
+            {
+                TipAmount = _tendered;
+                TipText.Text = $"Propina: {TipAmount:C}";
+                TipText.Visibility = Visibility.Visible;
+                _inputBuffer = "";
+                UpdateState();
+            }
+        }
+
+        
         private void BtnPay_Click(object sender, RoutedEventArgs e)
         {
-            if (_tendered < Total)
+            if (_isProcessing) return;
+            
+            decimal totalPaid = Payments.Sum(p => p.Amount);
+            if (totalPaid < Total)
             {
-                MessageBox.Show("El monto recibido es menor al total.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show($"Faltan {(Total - totalPaid).ToString("C")} por pagar.", "Pago Incompleto", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+            
+            _isProcessing = true;
+            if (sender is Button btn) { btn.IsEnabled = false; }
             
             IsPaid = true;
             DialogResult = true;
             Close();
         }
+
     }
 }

@@ -13,6 +13,7 @@ public class SessionData
     public string Token { get; set; } = string.Empty;
     public string RefreshToken { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
 }
 
 public class SessionManager
@@ -21,6 +22,8 @@ public class SessionManager
     public string Token { get; set; } = string.Empty;
     public string RefreshToken { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+
     
     public bool IsAuthenticated => !string.IsNullOrEmpty(Token);
 
@@ -48,7 +51,8 @@ public class SessionManager
                 TenantId = CurrentTenantId,
                 Token = Token,
                 RefreshToken = RefreshToken,
-                Username = Username
+                Username = Username,
+                Role = Role
             };
 
             var json = JsonSerializer.Serialize(data);
@@ -97,6 +101,7 @@ public class SessionManager
                 Token = data.Token;
                 RefreshToken = data.RefreshToken;
                 Username = data.Username;
+                Role = data.Role ?? "Admin";
                 return true;
             }
         }

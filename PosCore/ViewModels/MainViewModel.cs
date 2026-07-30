@@ -13,6 +13,23 @@ namespace PosCore.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    [ObservableProperty]
+    private bool _isAdmin;
+    [ObservableProperty]
+    private bool _isOffline;
+
+    [ObservableProperty]
+    private string _syncStatusMessage = "Sincronizando...";
+
+    [ObservableProperty]
+    private SolidColorBrush _syncStatusColor = Brushes.Gray;
+
+    [ObservableProperty]
+    private bool _isHardwareError = false;
+
+    [ObservableProperty]
+    private string _hardwareErrorMessage = string.Empty;
+
     private readonly PosDbContext _dbContext;
 
     public static ObservableCollection<ObservableCollection<OrderItem>> SuspendedOrders { get; set; } = new();
@@ -71,6 +88,21 @@ public partial class MainViewModel : ObservableObject
         ApplySearchFilter();
     }
 
+    public void ProcessBarcode()
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery)) return;
+        
+        var exactBarcodeMatch = Products.FirstOrDefault(p => p.Barcode == SearchQuery);
+        if (exactBarcodeMatch != null)
+        {
+            AddToCart(exactBarcodeMatch);
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(() => 
+            {
+                SearchQuery = string.Empty;
+            });
+        }
+    }
+
     private void ApplySearchFilter()
     {
         if (string.IsNullOrWhiteSpace(SearchQuery))
@@ -80,18 +112,7 @@ public partial class MainViewModel : ObservableObject
         }
 
         var query = SearchQuery.ToLower();
-        var exactBarcodeMatch = Products.FirstOrDefault(p => p.Barcode == SearchQuery);
-        
-        // Comportamiento escáner: coincidencia exacta de código de barras
-        if (exactBarcodeMatch != null)
-        {
-            AddToCart(exactBarcodeMatch);
-            System.Windows.Application.Current.Dispatcher.InvokeAsync(() => 
-            {
-                SearchQuery = string.Empty;
-            });
-            return;
-        }
+
 
         var matches = Products.Where(p => 
             p.Name.ToLower().Contains(query) || 
@@ -105,6 +126,36 @@ public partial class MainViewModel : ObservableObject
     private decimal _total;
 
     [ObservableProperty]
+    private string _customerName = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<string> _categories = new();
+
+    [ObservableProperty]
+    private string _selectedCategory = "Todas";
+
+    [RelayCommand]
+    private void SelectCategory(string category)
+    {
+        SelectedCategory = category;
+        LoadProductsCommand.Execute(null);
+    }
+    
+    [RelayCommand]
+    private void ConfigurePrinter()
+    {
+        var configWindow = new PosCore.Views.PrinterConfigWindow();
+        if (configWindow.ShowDialog() == true)
+        {
+            Settings.Printer.PortName = configWindow.SelectedPrinter;
+            Settings.Printer.PrintLogo = configWindow.PrintLogo;
+            // Opcionalmente guardar localmente en appsettings.json, aquí solo se actualiza en memoria para la sesión.
+            _ = ShowNotification("Configuración de impresora guardada.", false);
+        }
+    }
+
+
+    [ObservableProperty]
     private AppSettings _settings;
 
     [ObservableProperty]
@@ -112,14 +163,17 @@ public partial class MainViewModel : ObservableObject
 
     private readonly SyncService _syncService;
     private readonly TicketPrinterService _ticketPrinterService;
+    private readonly PosCore.Services.SessionManager _sessionManager;
 
-    public MainViewModel(PosDbContext dbContext, IApiService apiService, IOptions<AppSettings> settings, SyncService syncService, TicketPrinterService ticketPrinterService)
+    public MainViewModel(PosDbContext dbContext, IApiService apiService, IOptions<AppSettings> settings, SyncService syncService, TicketPrinterService ticketPrinterService, PosCore.Services.SessionManager sessionManager)
     {
         _dbContext = dbContext;
         _apiService = apiService;
         _settings = settings.Value;
         _syncService = syncService;
         _ticketPrinterService = ticketPrinterService;
+        _sessionManager = sessionManager;
+        IsAdmin = _sessionManager.Role == "Admin";
 
         _syncService.OnSyncCompleted += () => 
         {
@@ -139,7 +193,7 @@ public partial class MainViewModel : ObservableObject
         SyncStatusColor = IsOffline ? Brushes.Orange : Brushes.Green;
         
         try {
-            var color = (Color)ColorConverter.ConvertFromString(_settings.WhiteLabel.PrimaryColor);
+            var color = (Color)ColorConverter.ConvertFromString(Settings.WhiteLabel.PrimaryColor);
             PrimaryColorBrush = new SolidColorBrush(color);
         } catch {
             // fallback if color is invalid
@@ -150,37 +204,39 @@ public partial class MainViewModel : ObservableObject
     }
 
 
+    
     [RelayCommand]
     private async Task LoadProductsAsync()
     {
-        var localProducts = await _dbContext.Products.AsNoTracking().ToListAsync();
+        var query = _dbContext.Products.AsQueryable();
         
-        if (!localProducts.Any())
+        if (!string.IsNullOrWhiteSpace(SearchQuery))
         {
-            // If empty, try to sync from API
-            await _syncService.SyncDataAsync();
-            localProducts = await _dbContext.Products.AsNoTracking().ToListAsync();
-            
-            // Seed default products if still empty
-            if (!localProducts.Any())
-            {
-                var dummyProducts = new System.Collections.Generic.List<PosCore.Models.Product>
-                {
-                    new PosCore.Models.Product { Name = "Coca Cola 600ml", Price = 1.50m, Barcode = "7501055300075", StockQuantity = 100 },
-                    new PosCore.Models.Product { Name = "Gansito Marinela", Price = 1.20m, Barcode = "7501000142200", StockQuantity = 50 },
-                    new PosCore.Models.Product { Name = "Sabritas Sal 40g", Price = 1.00m, Barcode = "7501011115545", StockQuantity = 75 },
-                    new PosCore.Models.Product { Name = "Agua Ciel 1L", Price = 0.90m, Barcode = "7501055310883", StockQuantity = 120 }
-                };
-                
-                _dbContext.Products.AddRange(dummyProducts);
-                await _dbContext.SaveChangesAsync();
-                
-                localProducts = await _dbContext.Products.AsNoTracking().ToListAsync();
-            }
+            var lowerQuery = SearchQuery.ToLower();
+            query = query.Where(p => p.Name.ToLower().Contains(lowerQuery) || p.Barcode.ToLower().Contains(lowerQuery));
         }
 
-        Products.Clear();
-        foreach (var p in localProducts)
+        var allProducts = await _dbContext.Products.ToListAsync();
+        
+        // Populate Categories uniquely
+        var cats = allProducts.Select(p => p.Category).Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
+        if (!cats.Contains("General")) cats.Add("General");
+        
+        // We ensure "Todas" is there
+        if (!Categories.Contains("Todas")) Categories.Add("Todas");
+        foreach(var c in cats)
+        {
+            if(!Categories.Contains(c)) Categories.Add(c);
+        }
+        
+        if(SelectedCategory != "Todas")
+        {
+            query = query.Where(p => p.Category == SelectedCategory);
+        }
+
+        var products = await query.OrderBy(p => p.Name).Take(50).ToListAsync();
+                Products.Clear();
+        foreach (var p in products)
         {
             Products.Add(p);
         }
@@ -202,6 +258,11 @@ public partial class MainViewModel : ObservableObject
         if (existingItem != null)
         {
             existingItem.Quantity++;
+            var index = Cart.IndexOf(existingItem);
+            if (index >= 0) {
+                Cart.RemoveAt(index);
+                Cart.Insert(index, existingItem);
+            }
         }
         else
         {
@@ -238,12 +299,15 @@ public partial class MainViewModel : ObservableObject
                 return;
             }
             item.Quantity++;
+            var index = Cart.IndexOf(item);
+            if (index >= 0) {
+                Cart.RemoveAt(index);
+                Cart.Insert(index, item);
+            }
             UpdateTotal();
         }
     }
 
-    [RelayCommand]
-    [RelayCommand]
     [RelayCommand]
     private void ModifyItem(OrderItem item)
     {
@@ -305,6 +369,13 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void OpenUsers()
+    {
+        var usersWindow = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Views.UsersWindow>(App.ServiceProvider!);
+        usersWindow.ShowDialog();
+    }
+
+    [RelayCommand]
     private void OpenInventory()
     {
         var inventoryWindow = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Views.InventoryWindow>(App.ServiceProvider!);
@@ -350,13 +421,26 @@ public partial class MainViewModel : ObservableObject
                 }
             }
 
+            var paymentDetailsList = paymentWindow.Payments.Select(p => $"{p.Method}: {p.Amount:C}").ToList();
+            var paymentDetailsStr = string.Join(", ", paymentDetailsList);
+            
+            decimal taxRate = Settings.Tax?.DefaultTaxRate ?? 0.16m;
+            decimal subtotal = Total / (1 + taxRate);
+            decimal taxes = Total - subtotal;
+
+            
             var order = new Order
             {
                 OrderDate = System.DateTime.Now,
+                CustomerName = CustomerName,
+                SubTotal = subtotal,
+                TaxAmount = taxes,
                 TotalAmount = Total,
                 Items = Cart.ToList(),
-                IsReturned = false
+                IsReturned = false,
+                PaymentDetails = paymentDetailsStr
             };
+
             
             _dbContext.Orders.Add(order);
             
@@ -373,7 +457,10 @@ public partial class MainViewModel : ObservableObject
             
             _ticketPrinterService.PrintTicket(order);
             
+
+            CustomerName = string.Empty;
             Cart.Clear();
+
             UpdateTotal();
             _ = ShowNotification("Venta completada exitosamente.", false);
             

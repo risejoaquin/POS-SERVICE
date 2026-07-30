@@ -15,7 +15,7 @@ namespace PosCore.Views
 
         private void ReasonCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ReasonCombo.SelectedItem is ComboBoxItem item && item.Content.ToString() == "Otro")
+            if (ReasonCombo.SelectedItem is ComboBoxItem item && (item.Content?.ToString() ?? "") == "Otro")
             {
                 OtherReasonBox.Visibility = Visibility.Visible;
             }
@@ -35,7 +35,7 @@ namespace PosCore.Views
         {
             if (ReasonCombo.SelectedItem is ComboBoxItem item)
             {
-                SelectedReason = item.Content.ToString() == "Otro" ? OtherReasonBox.Text : item.Content.ToString();
+                SelectedReason = (item.Content?.ToString() ?? "") == "Otro" ? OtherReasonBox.Text : (item.Content?.ToString() ?? "");
             }
 
             if (string.IsNullOrWhiteSpace(SelectedReason))

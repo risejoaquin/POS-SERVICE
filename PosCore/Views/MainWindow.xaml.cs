@@ -5,7 +5,26 @@ namespace PosCore.Views;
 
 public partial class MainWindow : Window
 {
-    public MainWindow(MainViewModel viewModel)
+    private void SearchBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                if (DataContext is MainViewModel vm)
+                {
+                    vm.ProcessBarcode();
+                }
+            }
+        }
+
+        private void SearchBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.TextBox tb)
+            {
+                tb.SelectAll();
+            }
+        }
+
+        public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
         

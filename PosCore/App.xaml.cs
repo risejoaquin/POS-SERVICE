@@ -20,6 +20,10 @@ namespace PosCore;
 
 public partial class App : Application
 {
+    public App()
+    {
+        QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+    }
     private async Task CheckForUpdatesAsync()
     {
         try
@@ -120,6 +124,8 @@ public partial class App : Application
         services.AddTransient<ReturnsViewModel>();
         services.AddTransient<ShiftViewModel>();
         services.AddTransient<ShiftWindow>();
+        services.AddTransient<UsersViewModel>();
+        services.AddTransient<UsersWindow>();
         services.AddTransient<LogViewerViewModel>();
         services.AddTransient<LogViewerWindow>();
 
@@ -149,15 +155,64 @@ public partial class App : Application
             {
                 try {
                     dbContext.Database.EnsureCreated();
+                    
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN Category TEXT NOT NULL DEFAULT 'General';"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN CustomerName TEXT NOT NULL DEFAULT '';"); } catch { }
+
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN MinStockThreshold INTEGER NOT NULL DEFAULT 10;"); } catch { }
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OutboxMessages ADD COLUMN RetryCount INTEGER NOT NULL DEFAULT 0;"); } catch { }
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN ReturnReason TEXT NOT NULL DEFAULT '';"); } catch { }
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN AuthorizedBy TEXT NOT NULL DEFAULT '';"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN PaymentDetails TEXT NOT NULL DEFAULT '';"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS Users (Id INTEGER NOT NULL CONSTRAINT PK_Users PRIMARY KEY AUTOINCREMENT, Username TEXT NOT NULL, Pin TEXT NOT NULL, Role TEXT NOT NULL, IsActive INTEGER NOT NULL, CreatedAt TEXT NOT NULL, TenantId TEXT NOT NULL)"); } catch { }
+
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN SubTotal TEXT NOT NULL DEFAULT '0.0';"); } catch { }
+                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN TaxAmount TEXT NOT NULL DEFAULT '0.0';"); } catch { }
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OrderItem ADD COLUMN Notes TEXT NOT NULL DEFAULT '';"); } catch { }
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OrderItem ADD COLUMN Discount TEXT NOT NULL DEFAULT '0.0';"); } catch { }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw(@"
+                            CREATE TABLE IF NOT EXISTS CashMovements (
+                                Id INTEGER NOT NULL CONSTRAINT PK_CashMovements PRIMARY KEY AUTOINCREMENT,
+                                ShiftId INTEGER NOT NULL,
+                                Type TEXT NOT NULL,
+                                Amount TEXT NOT NULL,
+                                Reason TEXT NOT NULL,
+                                CreatedAt TEXT NOT NULL,
+                                TenantId TEXT NOT NULL
+                            );");
+                    } catch { }
+
                     var relCreator = dbContext.Database.GetService<IRelationalDatabaseCreator>();
                     relCreator.CreateTables();
                 } catch { }
+                
+                // Seed inicial
+                try {
+                    if (!Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(dbContext.Users).Any(u => u.Username == "admin"))
+                    {
+                        dbContext.Users.Add(new PosCore.Models.User { Username = "admin", Pin = "1234", Role = "Admin", IsActive = true, CreatedAt = System.DateTime.Now, TenantId = "LOCAL" });
+                    }
+                    if (!Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(dbContext.Users).Any(u => u.Username == "cajero1"))
+                    {
+                        dbContext.Users.Add(new PosCore.Models.User { Username = "cajero1", Pin = "1111", Role = "Cashier", IsActive = true, CreatedAt = System.DateTime.Now, TenantId = "LOCAL" });
+                    }
+                    if (!Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(dbContext.Users).Any(u => u.Username == "cajero2"))
+                    {
+                        dbContext.Users.Add(new PosCore.Models.User { Username = "cajero2", Pin = "2222", Role = "Cashier", IsActive = true, CreatedAt = System.DateTime.Now, TenantId = "LOCAL" });
+                    }
+                    dbContext.SaveChanges();
+                    if (!Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(dbContext.Products).Any())
+                    {
+                        dbContext.Products.AddRange(
+                            new PosCore.Models.Product { Name = "Coca Cola 600ml", Barcode = "7501055300075", Price = 18.00m, StockQuantity = 50, Category = "Bebidas", MinStockThreshold = 10, TenantId = "LOCAL", LastUpdated = System.DateTime.Now },
+                            new PosCore.Models.Product { Name = "Sabritas Sal 40g", Barcode = "7501011111111", Price = 15.00m, StockQuantity = 30, Category = "Botanas", MinStockThreshold = 10, TenantId = "LOCAL", LastUpdated = System.DateTime.Now },
+                            new PosCore.Models.Product { Name = "Agua Ciel 1L", Barcode = "7501022222222", Price = 12.00m, StockQuantity = 40, Category = "Bebidas", MinStockThreshold = 10, TenantId = "LOCAL", LastUpdated = System.DateTime.Now }
+                        );
+                        dbContext.SaveChanges();
+                    }
+                } catch { }
+
             } 
             catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 11 || ex.SqliteErrorCode == 26 || ex.Message.Contains("malformed"))
             {

@@ -17,6 +17,8 @@ public class PosDbContext : DbContext
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
     public DbSet<CashRegisterShift> CashRegisterShifts { get; set; }
+    public DbSet<CashMovement> CashMovements { get; set; }
+    public DbSet<User> Users { get; set; }
 
     public PosDbContext(DbContextOptions<PosDbContext> options, SessionManager sessionManager) : base(options)
     {
@@ -41,6 +43,8 @@ public class PosDbContext : DbContext
         modelBuilder.Entity<OrderItem>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
         modelBuilder.Entity<OutboxMessage>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
         modelBuilder.Entity<CashRegisterShift>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
+        modelBuilder.Entity<CashMovement>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
+        modelBuilder.Entity<User>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
     }
     
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

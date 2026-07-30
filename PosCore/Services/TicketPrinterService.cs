@@ -1,4 +1,5 @@
 using System;
+using System.Windows;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -22,25 +23,45 @@ namespace PosCore.Services
         private static readonly byte[] ESC_INIT = new byte[] { 27, 64 };
         private static readonly byte[] ESC_ALIGN_CENTER = new byte[] { 27, 97, 1 };
         private static readonly byte[] ESC_ALIGN_LEFT = new byte[] { 27, 97, 0 };
+        private static readonly byte[] ESC_ALIGN_RIGHT = new byte[] { 27, 97, 2 };
         private static readonly byte[] ESC_BOLD_ON = new byte[] { 27, 69, 1 };
         private static readonly byte[] ESC_BOLD_OFF = new byte[] { 27, 69, 0 };
         private static readonly byte[] ESC_CUT = new byte[] { 29, 86, 66, 0 };
 
+        
         public bool PrintTicket(Order order, string? portName = null)
         {
             portName ??= _settings.Printer.PortName;
             try
             {
-                if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) 
+                if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
                 {
                     Log.Warning("La impresión directa solo es compatible en Windows.");
+                    return false;
+                }
+
+                // Simular chequeo de hardware (ej: sin papel, desconectada)
+                // En un escenario real, esto se hace verificando el estado de la impresora WMI o API de Windows
+                bool isOffline = false; // dummy
+                if (isOffline)
+                {
+                    MessageBox.Show("La impresora está desconectada o sin papel.", "Error de Impresora", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
                 using (var ms = new MemoryStream())
                 {
                     ms.Write(ESC_INIT, 0, ESC_INIT.Length);
+                    
+                    // Logo Support (Optional simulated bitmap logic)
+                    if (_settings.Printer.PrintLogo)
+                    {
+                        ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
+                        WriteString(ms, "[ LOGO DE EMPRESA ]\n\n");
+                    }
+
                     ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
+
                     ms.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
                     WriteString(ms, $"--- {_settings.WhiteLabel.CompanyName.ToUpper()} ---\n");
                     ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
@@ -60,12 +81,29 @@ namespace PosCore.Services
                     }
                     WriteString(ms, "--------------------------------\n");
                     
+                    decimal taxRate = 0.16m; // IVA 16%
+                    decimal subtotal = order.TotalAmount / (1 + taxRate);
+                    decimal taxes = order.TotalAmount - subtotal;
+                    
+                    ms.Write(ESC_ALIGN_RIGHT, 0, ESC_ALIGN_RIGHT.Length);
+                    WriteString(ms, $"SUBTOTAL: {subtotal.ToString("C")}\n");
+                    WriteString(ms, $"IVA (16%): {taxes.ToString("C")}\n");
+                    
                     ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
                     ms.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
                     WriteString(ms, $"TOTAL: {order.TotalAmount.ToString("C")}\n");
                     ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
                     
-                    WriteString(ms, "\n¡Gracias por su compra!\n\n\n\n\n\n");
+                    if (!string.IsNullOrWhiteSpace(order.PaymentDetails))
+                    {
+                        WriteString(ms, "\nPagos:\n");
+                        string[] payments = order.PaymentDetails.Split(',');
+                        foreach(var p in payments) {
+                            WriteString(ms, $"{p.Trim()}\n");
+                        }
+                    }
+                    
+                    WriteString(ms, $"\n{_settings.Tax?.ReceiptFooter ?? "¡Gracias por su compra!"}\n\n\n\n\n\n");
                     ms.Write(ESC_CUT, 0, ESC_CUT.Length);
                     
                     byte[] dataToPrint = ms.ToArray();
@@ -81,6 +119,59 @@ namespace PosCore.Services
             catch (Exception ex)
             {
                 Log.Error(ex, $"Error al intentar imprimir el ticket en la impresora {portName}");
+                return false;
+            }
+        }
+
+        
+        public bool PrintShiftTicket(CashRegisterShift shift, string? portName = null)
+        {
+            portName ??= _settings.Printer.PortName;
+            try
+            {
+                if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                {
+                    Log.Warning("La impresión directa solo es compatible en Windows.");
+                    return false;
+                }
+                using (var ms = new MemoryStream())
+                {
+                    ms.Write(ESC_INIT, 0, ESC_INIT.Length);
+                    ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
+                    ms.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
+                    WriteString(ms, $"--- {_settings.WhiteLabel.CompanyName.ToUpper()} ---\n");
+                    WriteString(ms, "*** CORTE DE TURNO ***\n");
+                    ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
+                    
+                    WriteString(ms, $"Cajero: {shift.ClosedBy}\n");
+                    WriteString(ms, $"Apertura: {shift.OpenedAt:dd/MM/yyyy HH:mm}\n");
+                    WriteString(ms, $"Cierre: {shift.ClosedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A"}\n");
+                    WriteString(ms, "--------------------------------\n");
+                    
+                    ms.Write(ESC_ALIGN_LEFT, 0, ESC_ALIGN_LEFT.Length);
+                    WriteString(ms, $"Fondo Inicial:     {(shift.StartingCash).ToString("C").PadLeft(12)}\n");
+                    WriteString(ms, $"Esperado (Total):  {(shift.ExpectedEndingCash ?? 0).ToString("C").PadLeft(12)}\n");
+                    WriteString(ms, $"Contado en Caja:   {(shift.ActualEndingCash ?? 0).ToString("C").PadLeft(12)}\n");
+                    WriteString(ms, "--------------------------------\n");
+                    
+                    ms.Write(ESC_BOLD_ON, 0, ESC_BOLD_ON.Length);
+                    WriteString(ms, $"DIFERENCIA:        {(shift.Difference ?? 0).ToString("C").PadLeft(12)}\n");
+                    ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
+                    
+                    WriteString(ms, "\n\n\n\n\n");
+                    ms.Write(ESC_CUT, 0, ESC_CUT.Length);
+                    
+                    using (var port = new System.IO.Ports.SerialPort(portName, 9600))
+                    {
+                        port.Open();
+                        port.Write(ms.ToArray(), 0, (int)ms.Length);
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error printing shift ticket");
                 return false;
             }
         }

@@ -3,89 +3,59 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:PosCore.Views"
+        xmlns:viewmodels="clr-namespace:PosCore.ViewModels"
+        xmlns:converters="clr-namespace:PosCore.Converters"
         mc:Ignorable="d"
-        Title="Cierre de Caja y Turnos" Height="500" Width="600"
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+        Title="Arqueo y Control de Turnos - POS Express" Height="500" Width="450"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Background="#F3F4F6">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+        <converters:LessThanZeroConverter x:Key="LessThanZeroConverter"/>
     </Window.Resources>
-    <Grid Background="#F3F4F6">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
-        <!-- Header -->
-        <Border Grid.Row="0" Background="White" Padding="20" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1">
-            <TextBlock Text="Arqueo y Control de Turnos" FontSize="24" FontWeight="Bold" Foreground="#111827" HorizontalAlignment="Center"/>
-        </Border>
-
-        <!-- Content -->
-        <Grid Grid.Row="1" Margin="20">
-            
-            <!-- Turno Cerrado (Para Abrir) -->
-            <Border Background="White" CornerRadius="8" Padding="30" 
-                    Visibility="{Binding HasActiveShift, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="No hay un turno activo" FontSize="20" FontWeight="SemiBold" Foreground="#4B5563" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+    
+    <Grid Margin="25">
+        <Border Background="White" CornerRadius="12" Padding="30" BorderBrush="#E5E7EB" BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" BlurRadius="10" ShadowDepth="1" Opacity="0.05" />
+            </Border.Effect>
+            <Grid>
+                <!-- Apertura de Turno -->
+                <StackPanel Visibility="{Binding HasActiveShift, Converter={StaticResource InverseBooleanToVisibilityConverter}}" VerticalAlignment="Center">
+                    <TextBlock Text="Apertura de Turno" FontSize="26" FontWeight="Bold" Foreground="#1F2937" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Declare el monto inicial en caja." FontSize="14" Foreground="#6B7280" HorizontalAlignment="Center" Margin="0,0,0,30"/>
                     
-                    <TextBlock Text="Fondo de Caja (Monto Inicial):" FontSize="14" Foreground="#374151" Margin="0,0,0,5"/>
-                    <TextBox Text="{Binding StartingCashInput, UpdateSourceTrigger=PropertyChanged}" FontSize="24" Padding="10" Margin="0,0,0,20" TextAlignment="Center"/>
+                    <TextBlock Text="Fondo de Caja Inicial" FontSize="14" Foreground="#4B5563" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <TextBox Text="{Binding StartingCash, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" 
+                             FontSize="24" FontWeight="Bold" Padding="15" Margin="0,0,0,30" Background="#F9FAFB" BorderBrush="#D1D5DB" BorderThickness="1" Foreground="#111827" HorizontalContentAlignment="Right"/>
                     
-                    <Button Command="{Binding OpenShiftCommand}" Content="Abrir Turno" 
-                            Background="#10B981" Foreground="White" FontSize="16" FontWeight="SemiBold"
-                            Padding="15,12" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Center" Width="200"/>
+                    <Button Content="Abrir Turno" Command="{Binding OpenShiftCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
+                            Background="#10B981" Foreground="White" FontSize="18" FontWeight="Bold" Height="55" BorderThickness="0" Cursor="Hand"/>
                 </StackPanel>
-            </Border>
-
-            <!-- Turno Abierto (Para Cerrar) -->
-            <Border Background="White" CornerRadius="8" Padding="30" 
-                    Visibility="{Binding HasActiveShift, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <StackPanel>
-                    <TextBlock Text="Turno Actual" FontSize="20" FontWeight="SemiBold" Foreground="#111827" Margin="0,0,0,20"/>
+                
+                <!-- Cierre de Turno -->
+                <StackPanel Visibility="{Binding HasActiveShift, Converter={StaticResource BooleanToVisibilityConverter}}" VerticalAlignment="Center">
+                    <TextBlock Text="Cierre de Turno" FontSize="26" FontWeight="Bold" Foreground="#1F2937" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Declare el monto final contado en caja." FontSize="14" Foreground="#6B7280" HorizontalAlignment="Center" Margin="0,0,0,30"/>
                     
-                    <Grid Margin="0,0,0,20">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Abierto el:" Foreground="#6B7280" Margin="0,0,0,10"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding CurrentShift.OpenedAt, StringFormat='dd/MM/yyyy HH:mm'}" FontWeight="SemiBold" Margin="0,0,0,10"/>
-
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Fondo Inicial:" Foreground="#6B7280" Margin="0,0,0,10"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CurrentShift.StartingCash, StringFormat='C'}" FontWeight="SemiBold" Margin="0,0,0,10"/>
-
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Ventas del Turno:" Foreground="#6B7280" Margin="0,0,0,10"/>
-                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding TotalSalesInShift, StringFormat='C'}" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                    </Grid>
-
-                    <Border Background="#F9FAFB" Padding="15" CornerRadius="4" Margin="0,0,0,20">
+                    <Border Margin="0,0,0,30" Background="#F9FAFB" Padding="20" HorizontalAlignment="Stretch">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="Efectivo Esperado:" FontSize="16" FontWeight="SemiBold" Foreground="#374151" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding CalculatedExpectedCash, StringFormat='C'}" FontSize="24" FontWeight="Bold" Foreground="#2563EB" VerticalAlignment="Center"/>
+                            <TextBlock Text="Total Físico en Caja:" FontSize="18" FontWeight="SemiBold" Foreground="#4B5563" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding ActualEndingCash, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" 
+                                     Width="120" FontSize="20" FontWeight="Bold" Padding="5,10" Background="White" BorderBrush="#D1D5DB" BorderThickness="1" HorizontalContentAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
                     </Border>
-
-                    <TextBlock Text="Efectivo Físico en Caja (Conteo):" FontSize="14" Foreground="#374151" Margin="0,0,0,5"/>
-                    <TextBox Text="{Binding ActualEndingCashInput, UpdateSourceTrigger=PropertyChanged}" FontSize="24" Padding="10" Margin="0,0,0,20" TextAlignment="Center"/>
-
-                    <Button Command="{Binding CloseShiftCommand}" Content="Cerrar Turno" 
-                            Background="#EF4444" Foreground="White" FontSize="16" FontWeight="SemiBold"
-                            Padding="15,12" BorderThickness="0" Cursor="Hand" HorizontalAlignment="Center" Width="200"/>
+                    
+                                        <Button Content="Retirar Efectivo / Salida" Command="{Binding RegisterWithdrawalCommand}" 
+                            Background="#F59E0B" Foreground="White" FontSize="16" FontWeight="Bold" Height="45" Margin="0,0,0,15" BorderThickness="0" Cursor="Hand"/>
+                    <Button Content="Cerrar Turno" Command="{Binding CloseShiftCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
+                            Background="#EF4444" Foreground="White" FontSize="18" FontWeight="Bold" Height="55" BorderThickness="0" Cursor="Hand"/>
                 </StackPanel>
-            </Border>
-        </Grid>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

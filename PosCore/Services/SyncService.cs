@@ -114,16 +114,8 @@ public class SyncService
                     else
                     {
                         message.RetryCount++;
-                        if (message.RetryCount >= 3)
-                        {
-                            message.ProcessedAt = DateTime.Now; // Marcar como procesado/fallido para no atascar la cola
-                            _logger.LogError($"Mensaje ID {message.Id} descartado tras {message.RetryCount} intentos fallidos.");
-                        }
-                        else
-                        {
-                            _logger.LogWarning($"Fallo al sincronizar Mensaje ID {message.Id}. Intento {message.RetryCount}/3. Se reintentará.");
-                            break; 
-                        }
+                        _logger.LogWarning($"Fallo al sincronizar Mensaje ID {message.Id}. Intento {message.RetryCount}. Aplicando Backoff indefinido.");
+                        break; 
                     }
                 }
 
@@ -179,19 +171,37 @@ public class SyncService
                         cloudProduct.Id = 0; 
                         dbContext.Products.Add(cloudProduct);
                     }
+                    
                     else
                     {
-                        // Resolución de Conflictos: "Último en escribir gana"
+                        // Resolución de Conflictos: 
+                        // El precio y nombre ganan los de la nube.
+                        // El stock se fusiona: Si en caja se vendió algo, la cantidad es menor. 
+                        // Para simplificar, tomamos el mínimo o si la caja restó stock localmente.
+                        
                         if (cloudProduct.LastUpdated > localProduct.LastUpdated)
                         {
-                            _logger.LogInformation($"Actualizando producto {localProduct.Barcode} con versión del servidor.");
+                            _logger.LogInformation($"Actualizando producto {localProduct.Barcode} con versión del servidor (Conflicto Resuelto).");
                             localProduct.Name = cloudProduct.Name;
                             localProduct.Price = cloudProduct.Price;
-                            localProduct.StockQuantity = cloudProduct.StockQuantity;
+                            
+                            // Fusionar inventario de forma segura: si local es menor, restarle a la nube esa diferencia
+                            // Esto asume que la diferencia local fue por ventas offline.
+                            if (localProduct.StockQuantity < cloudProduct.StockQuantity)
+                            {
+                                int diff = cloudProduct.StockQuantity - localProduct.StockQuantity;
+                                localProduct.StockQuantity = cloudProduct.StockQuantity - diff; // Es decir, se queda con la venta local pero ajustado.
+                            }
+                            else 
+                            {
+                                localProduct.StockQuantity = cloudProduct.StockQuantity;
+                            }
+                            
                             localProduct.LastUpdated = cloudProduct.LastUpdated;
                             dbContext.Products.Update(localProduct);
                         }
                     }
+
                 }
 
                 await dbContext.SaveChangesAsync();

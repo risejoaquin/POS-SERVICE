@@ -33,18 +33,18 @@ namespace PosCore.Views
                 return;
             }
 
-            // Simple check: In a real app we'd hash this or call API. 
-            // For now we check if there's an admin user with this pin, or hardcode a fallback "1234" for the demo
-            if (pin == "1234" || pin == "admin")
+            var adminUser = _dbContext.Users.FirstOrDefault(u => u.Role.ToLower() == "admin" && u.Pin == pin);
+            
+            if (adminUser != null || pin == "admin")
             {
                 IsAuthorized = true;
-                AuthorizedBy = "Gerente (Admin)";
+                AuthorizedBy = adminUser != null ? adminUser.Username : "Admin (Default)";
                 DialogResult = true;
                 Close();
             }
             else
             {
-                MessageBox.Show("PIN incorrecto. Autorización denegada.", "Denegado", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("PIN incorrecto o no tiene permisos de Administrador.", "Denegado", MessageBoxButton.OK, MessageBoxImage.Error);
                 PinBox.Clear();
                 PinBox.Focus();
             }

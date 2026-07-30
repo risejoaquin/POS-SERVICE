@@ -22,18 +22,24 @@ public class AuthController : ControllerBase
         _dbContext = dbContext;
     }
 
-    [HttpPost("login")]
+        [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
-        
-        if (user != null && BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        try 
         {
-            var token = GenerateJwtToken(user.Username, user.TenantId);
-            return Ok(new { Token = token, TenantId = user.TenantId });
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username.ToLower() == request.Username.ToLower());
+            
+            if (user != null && user.Pin == request.Password)
+            {
+                var token = GenerateJwtToken(user.Username, user.TenantId);
+                return Ok(new { Token = token, TenantId = user.TenantId ?? "default" });
+            }
+            return Unauthorized();
         }
-
-        return Unauthorized();
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Message = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
+        }
     }
 
     private string GenerateJwtToken(string username, string tenantId)
@@ -44,8 +50,8 @@ public class AuthController : ControllerBase
 
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, username),
-            new Claim("TenantId", tenantId),
+            new Claim(JwtRegisteredClaimNames.Sub, username ?? "unknown"),
+            new Claim("TenantId", tenantId ?? "default"),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
