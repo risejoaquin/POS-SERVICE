@@ -15,6 +15,13 @@
     <Window.InputBindings>
         <KeyBinding Key="F12" Command="{Binding CheckoutCommand}" />
         <KeyBinding Key="F4" Command="{Binding OpenShiftCommand}" />
+        <KeyBinding Key="F2" Command="{Binding SuspendOrderCommand}" />
+        <KeyBinding Key="F1" Command="{Binding FocusSearchCommand}" />
+        <KeyBinding Key="F3" Command="{Binding ResumeOrderCommand}" />
+        <KeyBinding Key="F5" Command="{Binding OpenReturnsCommand}" />
+        <KeyBinding Key="F6" Command="{Binding OpenReportsCommand}" />
+        <KeyBinding Key="F7" Command="{Binding OpenUsersCommand}" />
+        <KeyBinding Key="F8" Command="{Binding OpenInventoryCommand}" />
     </Window.InputBindings>
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -66,7 +73,7 @@
                     <TextBox x:Name="SearchBox" Grid.Column="1" 
                              Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" 
                              FontSize="18" Padding="5" 
-                             ToolTip="Buscar producto por nombre o escanear código de barras"
+                             ToolTip="F1: Buscar producto por nombre o escanear código de barras"
                              KeyDown="SearchBox_KeyDown" GotFocus="SearchBox_GotFocus" />
                 </Grid>
 
@@ -196,10 +203,10 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Content="⏸ Suspender" Command="{Binding SuspendOrderCommand}" Margin="0,0,5,0" Height="45" Background="#F59E0B" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                        <Button Grid.Column="0" Content="⏸ Suspender (F2)" Command="{Binding SuspendOrderCommand}" Margin="0,0,5,0" Height="45" Background="#F59E0B" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
                             <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
                         </Button>
-                        <Button Grid.Column="1" Content="▶ Retomar Orden" Command="{Binding ResumeOrderCommand}" Margin="5,0,0,0" Height="45" Background="#3B82F6" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
+                        <Button Grid.Column="1" Content="▶ Retomar (F3)" Command="{Binding ResumeOrderCommand}" Margin="5,0,0,0" Height="45" Background="#3B82F6" Foreground="White" FontWeight="Bold" BorderThickness="0" Cursor="Hand">
                             <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
                         </Button>
                     </Grid>
@@ -225,10 +232,10 @@
                         <Button Content="Probar Impresora" Width="130" Height="40" Margin="0,0,10,10" Background="#10B981" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding TestPrinterCommand}" />
             <Button Content="Logs" Width="100" Height="40" Margin="0,0,10,10" Background="#3B82F6" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenLogsCommand}" />
             <Button Content="Arqueo / Turno (F4)" Width="130" Height="40" Margin="0,0,10,10" Background="#8B5CF6" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenShiftCommand}" />
-            <Button Content="Devoluciones" Width="120" Height="40" Margin="0,0,10,10" Background="#F59E0B" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenReturnsCommand}" />
-            <Button Content="Reportes y Cierre" Width="150" Height="40" Margin="0,0,10,10" Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenReportsCommand}" Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-            <Button Content="Usuarios" Width="100" Height="40" Margin="0,0,10,10" Background="#17A2B8" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenUsersCommand}" Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-            <Button Content="Control de Inventario" Width="150" Height="40" Margin="0,0,10,10" 
+            <Button Content="Devoluciones (F5)" Width="120" Height="40" Margin="0,0,10,10" Background="#F59E0B" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenReturnsCommand}" />
+            <Button Content="Cierre/Reportes (F6)" Width="150" Height="40" Margin="0,0,10,10" Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenReportsCommand}" Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <Button Content="Usuarios (F7)" Width="100" Height="40" Margin="0,0,10,10" Background="#17A2B8" Foreground="White" BorderThickness="0" Cursor="Hand" Command="{Binding OpenUsersCommand}" Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+            <Button Content="Inventario (F8)" Width="150" Height="40" Margin="0,0,10,10" 
                     Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand"
                     Command="{Binding OpenInventoryCommand}" Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         </WrapPanel>

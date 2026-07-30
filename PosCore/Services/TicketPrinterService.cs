@@ -27,6 +27,7 @@ namespace PosCore.Services
         private static readonly byte[] ESC_BOLD_ON = new byte[] { 27, 69, 1 };
         private static readonly byte[] ESC_BOLD_OFF = new byte[] { 27, 69, 0 };
         private static readonly byte[] ESC_CUT = new byte[] { 29, 86, 66, 0 };
+        private static readonly byte[] ESC_DRAWER = new byte[] { 27, 112, 0, 25, 250 };
 
         
         public bool PrintTicket(Order order, string? portName = null)
@@ -104,6 +105,7 @@ namespace PosCore.Services
                     }
                     
                     WriteString(ms, $"\n{_settings.Tax?.ReceiptFooter ?? "¡Gracias por su compra!"}\n\n\n\n\n\n");
+                    ms.Write(ESC_DRAWER, 0, ESC_DRAWER.Length);
                     ms.Write(ESC_CUT, 0, ESC_CUT.Length);
                     
                     byte[] dataToPrint = ms.ToArray();
@@ -159,6 +161,7 @@ namespace PosCore.Services
                     ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
                     
                     WriteString(ms, "\n\n\n\n\n");
+                    ms.Write(ESC_DRAWER, 0, ESC_DRAWER.Length);
                     ms.Write(ESC_CUT, 0, ESC_CUT.Length);
                     
                     using (var port = new System.IO.Ports.SerialPort(portName, 9600))
@@ -214,6 +217,7 @@ namespace PosCore.Services
                     WriteString(ms, $"TOTAL DEVUELTO: {order.TotalAmount.ToString("C")}\n");
                     ms.Write(ESC_BOLD_OFF, 0, ESC_BOLD_OFF.Length);
                     WriteString(ms, "\nComprobante de devolucion\n\n\n\n\n\n");
+                    ms.Write(ESC_DRAWER, 0, ESC_DRAWER.Length);
                     ms.Write(ESC_CUT, 0, ESC_CUT.Length);
                     
                     byte[] dataToPrint = ms.ToArray();
@@ -260,6 +264,7 @@ namespace PosCore.Services
                     ms.Write(ESC_ALIGN_CENTER, 0, ESC_ALIGN_CENTER.Length);
                     WriteString(ms, "Si puedes leer esto, la impresora\n");
                     WriteString(ms, "esta configurada correctamente.\n\n\n\n\n");
+                    ms.Write(ESC_DRAWER, 0, ESC_DRAWER.Length);
                     ms.Write(ESC_CUT, 0, ESC_CUT.Length);
                     
                     byte[] dataToPrint = ms.ToArray();

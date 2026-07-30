@@ -165,6 +165,9 @@ public partial class MainViewModel : ObservableObject
     private readonly TicketPrinterService _ticketPrinterService;
     private readonly PosCore.Services.SessionManager _sessionManager;
 
+    [RelayCommand]
+    private void FocusSearch() { }
+
     public MainViewModel(PosDbContext dbContext, IApiService apiService, IOptions<AppSettings> settings, SyncService syncService, TicketPrinterService ticketPrinterService, PosCore.Services.SessionManager sessionManager)
     {
         _dbContext = dbContext;

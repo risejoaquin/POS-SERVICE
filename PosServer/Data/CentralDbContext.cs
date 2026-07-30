@@ -13,6 +13,7 @@ public class CentralDbContext : DbContext
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<License> Licenses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

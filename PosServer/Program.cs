@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.FileProviders;
 using System.IO;
-
 using System;
+
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,11 +26,9 @@ var envDbUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 if (!string.IsNullOrEmpty(envDbUrl)) {
     connString = envDbUrl;
 }
-
 if (connString.StartsWith("\"") && connString.EndsWith("\"")) {
     connString = connString.Trim('"');
 }
-
 if (connString.StartsWith("postgres://") || connString.StartsWith("postgresql://")) {
     var uri = new Uri(connString);
     var userInfo = uri.UserInfo.Split(':', 2); // Limit split to 2 in case password has colon
@@ -125,6 +123,10 @@ using (var scope = app.Services.CreateScope())
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" ADD COLUMN \"Role\" text DEFAULT 'Admin';"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Notes\" text DEFAULT '';"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Discount\" numeric DEFAULT 0;"); } catch { }
+        try { 
+            dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"Licenses\" (\"Id\" serial PRIMARY KEY, \"LicenseKey\" text, \"TenantId\" text, \"Description\" text, \"IsActive\" boolean, \"MaxTerminals\" integer, \"ValidUntil\" timestamp with time zone, \"CreatedAt\" timestamp with time zone)"); 
+        } catch { }
+
     }
 }
 

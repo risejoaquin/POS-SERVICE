@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -205,7 +206,17 @@ public partial class ReportsViewModel : ObservableObject
     {
         try
         {
-            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"Reportes_{DateTime.Now:yyyyMMdd_HHmmss}.xls");
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                FileName = $"Reportes_{DateTime.Now:yyyyMMdd_HHmmss}.xls",
+                DefaultExt = ".xls",
+                Filter = "Excel Spreadsheet (.xls)|*.xls|All Files (*.*)|*.*"
+            };
+
+            bool? result = dialog.ShowDialog();
+            if (result != true) return;
+
+            var filePath = dialog.FileName;
             var html = new StringBuilder();
             
             html.AppendLine("<html><head><meta charset='utf-8'><style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #dddddd; padding: 8px; text-align: left; } th { background-color: #f2f2f2; }</style></head><body>");
@@ -251,7 +262,17 @@ public partial class ReportsViewModel : ObservableObject
     {
         try
         {
-            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"Reporte_Avanzado_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                FileName = $"Reporte_Avanzado_{DateTime.Now:yyyyMMdd_HHmmss}.pdf",
+                DefaultExt = ".pdf",
+                Filter = "PDF Document (.pdf)|*.pdf|All Files (*.*)|*.*"
+            };
+
+            bool? result = dialog.ShowDialog();
+            if (result != true) return;
+
+            var filePath = dialog.FileName;
             
             Document.Create(container =>
             {
