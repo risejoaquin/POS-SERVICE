@@ -61,22 +61,28 @@ namespace PosServer.Controllers
                 order.Items = new List<OrderItem>();
             }
 
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                _context.Orders.Add(order);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { Message = "Orden sincronizada exitosamente", ServerOrderId = order.Id });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("ERROR CreateOrder: " + ex.ToString());
-                return StatusCode(500, new { 
-                    Error = "Error interno al guardar la orden en PostgreSQL", 
-                    Details = ex.Message, 
-                    InnerError = ex.InnerException?.Message 
-                });
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    _context.Orders.Add(order);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return Ok(new { Message = "Orden sincronizada exitosamente", ServerOrderId = order.Id });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    Console.WriteLine("ERROR CreateOrder: " + ex.ToString());
+                    return StatusCode(500, new { 
+                        Error = "Error interno al guardar la orden en PostgreSQL", 
+                        Details = ex.Message, 
+                        InnerError = ex.InnerException?.Message 
+                    });
+                }
+            });
         }
 
         [HttpGet]

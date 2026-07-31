@@ -22,9 +22,19 @@ public class TenantMiddleware
         {
             tenantId = context.Request.Headers["X-Tenant-Id"].FirstOrDefault() ?? string.Empty;
         }
+
+        var path = context.Request.Path.Value?.ToLower() ?? "";
+        bool isExemptRoute = path.Contains("/api/auth/login") || path.Contains("/api/license/validate") || path.Contains("/api/license/generate");
+        
+        if (string.IsNullOrEmpty(tenantId) && !isExemptRoute)
+        {
+            context.Response.StatusCode = 400;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new { Error = "Falta la cabecera X-Tenant-Id o el claim de TenantId." });
+            return;
+        }
         
         tenantService.SetTenantId(tenantId);
-        
         await _next(context);
     }
 }
