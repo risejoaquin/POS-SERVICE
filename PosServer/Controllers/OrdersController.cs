@@ -24,54 +24,54 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> SyncOrder([FromBody] Order order)
     {
+        if (order == null)
+            return BadRequest("La orden no puede ser nula.");
+
         var tenantId = GetTenantId();
         order.TenantId = tenantId;
-        
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        try
+        order.LastUpdated = DateTime.UtcNow;
+
+        if (order.Items != null && order.Items.Any())
         {
             foreach (var item in order.Items)
             {
                 item.TenantId = tenantId;
+                item.LastUpdated = DateTime.UtcNow;
                 
-                // Buscar el producto por código de barras (más confiable que ID generado localmente)
-                var product = await _context.Products.FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Barcode == item.ProductBarcode);
-                
-                if (product != null)
-                {
-                    // Restar stock
-                    product.StockQuantity -= item.Quantity;
-                    product.LastUpdated = DateTime.UtcNow;
-                    _context.Products.Update(product);
-                    
-                    // Asignar el ID correcto del servidor para la clave foránea
-                    item.ProductId = product.Id;
-                    item.Product = null!; // Avoid saving duplicate
-                }
-                else
-                {
-                    // Fallback si no tiene Barcode, probar con ID
-                    var productById = await _context.Products.FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == item.ProductId);
-                    if (productById != null)
-                    {
-                        productById.StockQuantity -= item.Quantity;
-                        productById.LastUpdated = DateTime.UtcNow;
-                        _context.Products.Update(productById);
-                        item.Product = null!; // Avoid saving duplicate
-                    }
-                }
+                // Desvincular OrderId e Id local para evitar conflictos al insertar en PostgreSQL
+                item.OrderId = 0;
+                item.Id = 0;
             }
+        }
+        else
+        {
+            order.Items = new List<OrderItem>();
+        }
+
+        try
+        {
+            // Evitamos error de duplicados si la orden ya existe por idempotencia
+            var existingOrder = await _context.Orders
+                .FirstOrDefaultAsync(o => o.TenantId == tenantId && o.Id == order.Id);
+
+            if (existingOrder != null)
+            {
+                return Ok(new { Success = true, OrderId = existingOrder.Id, Note = "Already synced" }); // Ya fue procesada previamente
+            }
+
+            // Reseteamos el ID si viene asignado desde la base de datos local (SQLite)
+            // para que PostgreSQL genere su propio AutoIncrement
+            order.Id = 0;
 
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+
             return Ok(new { Success = true, OrderId = order.Id });
         }
         catch (Exception ex)
         {
             Console.WriteLine("ERROR SyncOrder: " + ex.ToString());
-            await transaction.RollbackAsync();
-            return StatusCode(500, new { Success = false, Error = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
+            return StatusCode(500, new { message = "Error al guardar orden", error = ex.Message, inner = ex.InnerException?.Message });
         }
     }
 }
