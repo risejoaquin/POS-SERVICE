@@ -40,13 +40,23 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("changes")]
-    public async Task<IActionResult> GetChanges([FromQuery] DateTime since)
+    public async Task<IActionResult> GetChanges([FromQuery] string? since)
     {
         try 
         {
             var tenantId = GetTenantId();
+            
+            DateTime sinceDateTime = DateTime.MinValue;
+            if (!string.IsNullOrWhiteSpace(since))
+            {
+                if (!DateTime.TryParse(since, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal, out sinceDateTime))
+                {
+                    sinceDateTime = DateTime.MinValue;
+                }
+            }
+
             var changedProducts = await _context.Products
-                .Where(p => p.TenantId == tenantId && p.LastUpdated >= since)
+                .Where(p => p.TenantId == tenantId && p.LastUpdated >= sinceDateTime)
                 .ToListAsync();
             return Ok(changedProducts);
         }
