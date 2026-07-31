@@ -50,7 +50,10 @@ if (connString.Contains("supabase.com") || connString.Contains("pooler"))
 }
 
 builder.Services.AddDbContext<CentralDbContext>(options =>
-    options.UseNpgsql(connString, o => o.CommandTimeout(120)));
+    options.UseNpgsql(connString, o => {
+        o.CommandTimeout(120);
+        o.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null);
+    }));
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"];

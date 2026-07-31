@@ -17,9 +17,11 @@ public class TenantMiddleware
 
     public async Task InvokeAsync(HttpContext context, ITenantService tenantService)
     {
-        var tenantId = context.Request.Headers["X-Tenant-Id"].FirstOrDefault() 
-                       ?? context.User?.FindFirstValue("TenantId") 
-                       ?? string.Empty;
+        var tenantId = context.User?.FindFirstValue("TenantId");
+        if (string.IsNullOrEmpty(tenantId))
+        {
+            tenantId = context.Request.Headers["X-Tenant-Id"].FirstOrDefault() ?? string.Empty;
+        }
         
         tenantService.SetTenantId(tenantId);
         

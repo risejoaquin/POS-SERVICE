@@ -27,6 +27,7 @@ namespace PosServer.Controllers
         {
             var tenantId = _tenantService.GetTenantId();
             var products = await _context.Products
+                .AsNoTracking()
                 .Where(p => p.TenantId == tenantId)
                 .ToListAsync();
             return Ok(products);
@@ -47,6 +48,7 @@ namespace PosServer.Controllers
             }
 
             var products = await _context.Products
+                .AsNoTracking()
                 .Where(p => p.TenantId == tenantId && p.LastUpdated > sinceDateTime)
                 .ToListAsync();
 

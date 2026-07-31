@@ -84,9 +84,11 @@ namespace PosServer.Controllers
         {
             var tenantId = _tenantService.GetTenantId();
             var orders = await _context.Orders
+                .AsNoTracking()
                 .Include(o => o.Items)
                 .Where(o => o.TenantId == tenantId)
                 .OrderByDescending(o => o.OrderDate)
+                .Take(100) // Límite de paginación para evitar saturación de memoria
                 .ToListAsync();
 
             return Ok(orders);
@@ -97,6 +99,7 @@ namespace PosServer.Controllers
         {
             var tenantId = _tenantService.GetTenantId();
             var order = await _context.Orders
+                .AsNoTracking()
                 .Include(o => o.Items)
                 .FirstOrDefaultAsync(o => o.Id == id && o.TenantId == tenantId);
 

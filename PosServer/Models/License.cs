@@ -14,4 +14,7 @@ public class License
     public int MaxTerminals { get; set; } = 1;
     public DateTime ValidUntil { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [Timestamp]
+    public byte[]? RowVersion { get; set; }
 }
