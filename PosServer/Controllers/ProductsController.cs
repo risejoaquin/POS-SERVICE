@@ -74,6 +74,7 @@ public class ProductsController : ControllerBase
         {
             var tenantId = GetTenantId();
             product.TenantId = tenantId;
+            product.LastUpdated = product.LastUpdated.ToUniversalTime();
             
             var existing = await _context.Products.FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Barcode == product.Barcode);
             

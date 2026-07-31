@@ -30,6 +30,7 @@ public class OrdersController : ControllerBase
         var tenantId = GetTenantId();
         order.TenantId = tenantId;
         order.LastUpdated = DateTime.UtcNow;
+        order.OrderDate = order.OrderDate.ToUniversalTime();
 
         if (order.Items != null && order.Items.Any())
         {
@@ -41,6 +42,57 @@ public class OrdersController : ControllerBase
                 // Desvincular OrderId e Id local para evitar conflictos al insertar en PostgreSQL
                 item.OrderId = 0;
                 item.Id = 0;
+                
+                // Buscar el producto por código de barras
+                var product = await _context.Products.FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Barcode == item.ProductBarcode);
+                if (product != null)
+                {
+                    product.StockQuantity -= item.Quantity;
+                    product.LastUpdated = DateTime.UtcNow;
+                    _context.Products.Update(product);
+                    
+                    item.ProductId = product.Id;
+                }
+                else
+                {
+                    var productById = await _context.Products.FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Id == item.ProductId);
+                    if (productById != null)
+                    {
+                        productById.StockQuantity -= item.Quantity;
+                        productById.LastUpdated = DateTime.UtcNow;
+                        _context.Products.Update(productById);
+                        
+                        item.ProductId = productById.Id;
+                    }
+                    else
+                    {
+                        // Si el producto no existe en el servidor (ej. fue creado localmente y la orden llegó primero),
+                        // lo creamos usando los datos que vienen en item.Product o valores por defecto.
+                        var newProduct = item.Product ?? new Product
+                        {
+                            TenantId = tenantId,
+                            Name = "Producto Desconocido",
+                            Barcode = string.IsNullOrEmpty(item.ProductBarcode) ? Guid.NewGuid().ToString() : item.ProductBarcode,
+                            Price = item.UnitPrice,
+                            StockQuantity = 0,
+                            LastUpdated = DateTime.UtcNow
+                        };
+                        
+                        newProduct.Id = 0; // Asegurar que PostgreSQL asigne ID
+                        newProduct.TenantId = tenantId;
+                        newProduct.StockQuantity -= item.Quantity;
+                        newProduct.LastUpdated = DateTime.UtcNow;
+                        
+                        _context.Products.Add(newProduct);
+                        await _context.SaveChangesAsync(); // Guardar para obtener el ID real
+                        
+                        item.ProductId = newProduct.Id;
+                    }
+                }
+                
+                // Evita que Entity Framework intente insertar el producto nuevamente
+                // ya que lo procesamos manualmente
+                item.Product = null!;
             }
         }
         else
@@ -50,17 +102,10 @@ public class OrdersController : ControllerBase
 
         try
         {
-            // Evitamos error de duplicados si la orden ya existe por idempotencia
-            var existingOrder = await _context.Orders
-                .FirstOrDefaultAsync(o => o.TenantId == tenantId && o.Id == order.Id);
-
-            if (existingOrder != null)
-            {
-                return Ok(new { Success = true, OrderId = existingOrder.Id, Note = "Already synced" }); // Ya fue procesada previamente
-            }
-
             // Reseteamos el ID si viene asignado desde la base de datos local (SQLite)
-            // para que PostgreSQL genere su propio AutoIncrement
+            // para que PostgreSQL genere su propio AutoIncrement.
+            // (La validación de idempotencia por ID local fue removida porque colisionaba 
+            // entre diferentes clientes o reinstalaciones).
             order.Id = 0;
 
             _context.Orders.Add(order);
