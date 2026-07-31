@@ -225,6 +225,7 @@
     </Grid>
         <!-- Módulos Opcionales -->
         <WrapPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Content="Test Modificadores UI" Width="160" Height="40" Margin="0,0,10,10" Background="#EC4899" Foreground="White" BorderThickness="0" Cursor="Hand" Click="TestModifiers_Click" />
             <Button Content="Gestión de Mesas" Width="150" Height="40" Margin="0,0,10,10" 
                     Background="#6C757D" Foreground="White" BorderThickness="0" Cursor="Hand"
                     Visibility="{Binding Settings.Modules.EnableTableManagement, Converter={StaticResource BooleanToVisibilityConverter}}"/>

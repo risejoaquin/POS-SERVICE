@@ -28,6 +28,9 @@ public class CentralDbContext : DbContext
     public DbSet<OrderItem> OrderItems { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<License> Licenses { get; set; } = null!;
+    public DbSet<ProductModifier> ProductModifiers { get; set; } = null!;
+    public DbSet<ModifierOption> ModifierOptions { get; set; } = null!;
+    public DbSet<ProductModifierLink> ProductModifierLinks { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,21 +58,21 @@ public class CentralDbContext : DbContext
         modelBuilder.Entity<Product>(entity => {
             entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
             entity.Property(e => e.CustomAttributes)
-                  .HasColumnType("jsonb")
+                  
                   .HasConversion(dictConverter);
         });
 
         modelBuilder.Entity<Order>(entity => {
             entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
             entity.Property(e => e.CustomAttributes)
-                  .HasColumnType("jsonb")
+                  
                   .HasConversion(dictConverter);
         });
 
         modelBuilder.Entity<OrderItem>(entity => {
             entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
             entity.Property(e => e.CustomAttributes)
-                  .HasColumnType("jsonb")
+                  
                   .HasConversion(dictConverter);
         });
 
@@ -78,6 +81,18 @@ public class CentralDbContext : DbContext
         });
 
         modelBuilder.Entity<License>(entity => {
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+        });
+
+        modelBuilder.Entity<ProductModifier>(entity => {
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+        });
+        
+        modelBuilder.Entity<ModifierOption>(entity => {
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+        });
+
+        modelBuilder.Entity<ProductModifierLink>(entity => {
             entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
         });
     }

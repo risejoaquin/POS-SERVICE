@@ -21,6 +21,14 @@ public static class SecureConfigManager
 
         bool needsSave = false;
 
+        
+        // Secure SecretKey
+        if (!string.IsNullOrEmpty(settings.ApiSettings.SecretKey) && !settings.ApiSettings.SecretKey.StartsWith(DPAPI_PREFIX))
+        {
+            settings.ApiSettings.SecretKey = DPAPI_PREFIX + EncryptString(settings.ApiSettings.SecretKey);
+            needsSave = true;
+        }
+
         // Secure BaseUrl
         if (!string.IsNullOrEmpty(settings.ApiSettings.BaseUrl) && !settings.ApiSettings.BaseUrl.StartsWith(DPAPI_PREFIX))
         {
@@ -43,6 +51,12 @@ public static class SecureConfigManager
         // Return a decrypted copy for memory
         var decryptedSettings = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(settings))!;
         
+        
+        if (!string.IsNullOrEmpty(decryptedSettings.ApiSettings.SecretKey) && decryptedSettings.ApiSettings.SecretKey.StartsWith(DPAPI_PREFIX))
+        {
+            decryptedSettings.ApiSettings.SecretKey = DecryptString(decryptedSettings.ApiSettings.SecretKey.Substring(DPAPI_PREFIX.Length));
+        }
+
         if (decryptedSettings.ApiSettings.BaseUrl.StartsWith(DPAPI_PREFIX))
         {
             decryptedSettings.ApiSettings.BaseUrl = DecryptString(decryptedSettings.ApiSettings.BaseUrl.Substring(DPAPI_PREFIX.Length));

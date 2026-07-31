@@ -123,13 +123,34 @@ using (var scope = app.Services.CreateScope())
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"PaymentDetails\" text DEFAULT '';"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"SubTotal\" numeric DEFAULT 0;"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"TaxAmount\" numeric DEFAULT 0;"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"CustomerName\" text DEFAULT '';"); } catch { }
+        
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" ADD COLUMN \"Role\" text DEFAULT 'Admin';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Notes\" text DEFAULT '';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"Discount\" numeric DEFAULT 0;"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Products\" ADD COLUMN \"CustomAttributes\" jsonb DEFAULT '{}';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"CustomAttributes\" jsonb DEFAULT '{}';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItem\" ADD COLUMN \"CustomAttributes\" jsonb DEFAULT '{}';"); } catch { }
+        
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"Notes\" text DEFAULT '';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"Discount\" numeric DEFAULT 0;"); } catch { }
+        
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Products\" ADD COLUMN \"Category\" text DEFAULT 'General';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Products\" ADD COLUMN \"MinStockThreshold\" integer DEFAULT 10;"); } catch { }
 
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Products\" ADD COLUMN \"CustomAttributes\" text DEFAULT '{}';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Products\" ALTER COLUMN \"CustomAttributes\" TYPE text USING \"CustomAttributes\"::text;"); } catch { }
+        
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"CustomAttributes\" text DEFAULT '{}';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ALTER COLUMN \"CustomAttributes\" TYPE text USING \"CustomAttributes\"::text;"); } catch { }
+        
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"CustomAttributes\" text DEFAULT '{}';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ALTER COLUMN \"CustomAttributes\" TYPE text USING \"CustomAttributes\"::text;"); } catch { }
+        try {
+            try {
+                dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"ProductModifiers\" (\"Id\" serial PRIMARY KEY, \"Name\" text, \"Description\" text, \"IsRequired\" boolean, \"MinSelections\" integer, \"MaxSelections\" integer, \"TenantId\" text, \"LastUpdated\" timestamp with time zone)"); 
+        } catch { }
+        try { 
+            dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"ModifierOptions\" (\"Id\" serial PRIMARY KEY, \"ProductModifierId\" integer, \"Name\" text, \"PriceAdjustment\" numeric, \"IsDefault\" boolean, \"SortOrder\" integer, \"TenantId\" text)"); 
+        } catch { }
+        try { 
+            dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"ProductModifierLinks\" (\"Id\" serial PRIMARY KEY, \"ProductId\" integer, \"ProductModifierId\" integer, \"SortOrder\" integer, \"TenantId\" text)"); 
+        } catch { }
         try { 
             dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"Licenses\" (\"Id\" serial PRIMARY KEY, \"LicenseKey\" text, \"TenantId\" text, \"Description\" text, \"IsActive\" boolean, \"MaxTerminals\" integer, \"ValidUntil\" timestamp with time zone, \"CreatedAt\" timestamp with time zone)"); 
         } catch { }

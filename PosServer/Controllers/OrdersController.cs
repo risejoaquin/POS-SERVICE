@@ -70,8 +70,7 @@ public class OrdersController : ControllerBase
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            // Log error
-            return StatusCode(500, new { Success = false, Error = ex.Message });
+            return StatusCode(500, new { Success = false, Error = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
         }
     }
 }

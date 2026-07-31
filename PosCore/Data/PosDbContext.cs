@@ -22,6 +22,9 @@ public class PosDbContext : DbContext
     public DbSet<CashRegisterShift> CashRegisterShifts { get; set; }
     public DbSet<CashMovement> CashMovements { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<ProductModifier> ProductModifiers { get; set; }
+    public DbSet<ModifierOption> ModifierOptions { get; set; }
+    public DbSet<ProductModifierLink> ProductModifierLinks { get; set; }
 
     public PosDbContext(DbContextOptions<PosDbContext> options, SessionManager sessionManager) : base(options)
     {
@@ -58,6 +61,9 @@ public class PosDbContext : DbContext
         modelBuilder.Entity<CashRegisterShift>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
         modelBuilder.Entity<CashMovement>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
         modelBuilder.Entity<User>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
+        modelBuilder.Entity<ProductModifier>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
+        modelBuilder.Entity<ModifierOption>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
+        modelBuilder.Entity<ProductModifierLink>().HasQueryFilter(e => e.TenantId == _sessionManager.CurrentTenantId);
     }
     
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
