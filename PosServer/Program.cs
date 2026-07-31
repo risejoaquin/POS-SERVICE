@@ -118,6 +118,7 @@ using (var scope = app.Services.CreateScope())
     catch
     {
         // Tables already exist, try to add new columns for updates
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"IsReturned\" boolean DEFAULT false;"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"ReturnReason\" text DEFAULT '';"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"AuthorizedBy\" text DEFAULT '';"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"PaymentDetails\" text DEFAULT '';"); } catch { }
@@ -127,6 +128,8 @@ using (var scope = app.Services.CreateScope())
         
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" ADD COLUMN \"Role\" text DEFAULT 'Admin';"); } catch { }
         
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"ProductBarcode\" text DEFAULT '';"); } catch { }
+        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"LastUpdated\" timestamp with time zone DEFAULT NOW();"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"Notes\" text DEFAULT '';"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"Discount\" numeric DEFAULT 0;"); } catch { }
         
@@ -142,8 +145,7 @@ using (var scope = app.Services.CreateScope())
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"CustomAttributes\" text DEFAULT '{}';"); } catch { }
         try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ALTER COLUMN \"CustomAttributes\" TYPE text USING \"CustomAttributes\"::text;"); } catch { }
         try {
-            try {
-                dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"ProductModifiers\" (\"Id\" serial PRIMARY KEY, \"Name\" text, \"Description\" text, \"IsRequired\" boolean, \"MinSelections\" integer, \"MaxSelections\" integer, \"TenantId\" text, \"LastUpdated\" timestamp with time zone)"); 
+            dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"ProductModifiers\" (\"Id\" serial PRIMARY KEY, \"Name\" text, \"Description\" text, \"IsRequired\" boolean, \"MinSelections\" integer, \"MaxSelections\" integer, \"TenantId\" text, \"LastUpdated\" timestamp with time zone)"); 
         } catch { }
         try { 
             dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"ModifierOptions\" (\"Id\" serial PRIMARY KEY, \"ProductModifierId\" integer, \"Name\" text, \"PriceAdjustment\" numeric, \"IsDefault\" boolean, \"SortOrder\" integer, \"TenantId\" text)"); 
