@@ -73,7 +73,16 @@ public class PosDbContext : DbContext
         return base.SaveChangesAsync(cancellationToken);
     }
     
-    public void EnableWalMode()
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            var connectionString = "Data Source=pos_local.db;Default Timeout=30;";
+            optionsBuilder.UseSqlite(connectionString);
+        }
+    }
+
+    public void InitializeDatabaseSettings()
     {
         Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
         Database.ExecuteSqlRaw("PRAGMA busy_timeout=5000;");

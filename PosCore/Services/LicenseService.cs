@@ -65,6 +65,13 @@ public class LicenseService
         if (_settings.License.LastValidationDate.HasValue)
         {
             var daysOffline = (DateTime.UtcNow - _settings.License.LastValidationDate.Value).TotalDays;
+            
+            if (daysOffline < 0)
+            {
+                MessageBox.Show("Se ha detectado una alteración en la fecha del sistema. Por favor, conecte el equipo a internet para validar la licencia.", "Error de Seguridad de Licencia", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+
             if (daysOffline <= MAX_OFFLINE_DAYS)
             {
                 Log.Information($"Modo offline activado. Días sin conexión: {daysOffline:F1}/{MAX_OFFLINE_DAYS}");

@@ -148,6 +148,7 @@ public partial class App : Application
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<PosDbContext>();
             dbContext.Database.EnsureCreated();
+            dbContext.InitializeDatabaseSettings();
             var connStr = secureSettings.DatabaseSettings.ConnectionString;
             
             DatabaseBackupService.ManageDatabaseBackup(connStr);

@@ -116,17 +116,33 @@ public class SyncService
                     else
                     {
                         message.RetryCount++;
-                        _logger.LogWarning($"Fallo al sincronizar Mensaje ID {message.Id}. Intento {message.RetryCount}. Aplicando Backoff indefinido.");
-                        await dbContext.SaveChangesAsync();
-                        break;
+                        if (message.RetryCount >= 5)
+                        {
+                            _logger.LogError($"Mensaje ID {message.Id} superó el límite máximo de reintentos. Marcando como procesado con error.");
+                            message.ProcessedAt = DateTime.UtcNow; // O IsProcessed = true
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Fallo al sincronizar Mensaje ID {message.Id}. Intento {message.RetryCount}. Aplicando Backoff indefinido.");
+                            await dbContext.SaveChangesAsync();
+                            break;
+                        }
                     }
                     }
                     catch (Exception ex)
                     {
                         message.RetryCount++;
-                        _logger.LogWarning($"Excepcion al sincronizar Mensaje ID {message.Id}: {ex.Message}");
-                        await dbContext.SaveChangesAsync();
-                        break;
+                        if (message.RetryCount >= 5)
+                        {
+                            _logger.LogError($"Mensaje ID {message.Id} superó el límite máximo de reintentos con excepción: {ex.Message}. Marcando como procesado con error.");
+                            message.ProcessedAt = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Excepcion al sincronizar Mensaje ID {message.Id}: {ex.Message}");
+                            await dbContext.SaveChangesAsync();
+                            break;
+                        }
                     }
                 }
 
