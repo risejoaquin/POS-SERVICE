@@ -69,6 +69,7 @@ public class OrdersController : ControllerBase
         }
         catch (Exception ex)
         {
+            Console.WriteLine("ERROR SyncOrder: " + ex.ToString());
             await transaction.RollbackAsync();
             return StatusCode(500, new { Success = false, Error = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
         }

@@ -34,6 +34,7 @@ public class ProductsController : ControllerBase
         }
         catch (Exception ex)
         {
+            Console.WriteLine("ERROR GetProducts/SyncProduct: " + ex.ToString());
             return StatusCode(500, new { Error = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
         }
     }
@@ -51,6 +52,7 @@ public class ProductsController : ControllerBase
         }
         catch (Exception ex)
         {
+            Console.WriteLine("ERROR GetProducts/SyncProduct: " + ex.ToString());
             return StatusCode(500, new { Error = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
         }
     }
@@ -89,6 +91,7 @@ public class ProductsController : ControllerBase
         }
         catch (Exception ex)
         {
+            Console.WriteLine("ERROR GetProducts/SyncProduct: " + ex.ToString());
             return StatusCode(500, new { Error = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
         }
     }
