@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using PosServer.Data;
 using Microsoft.EntityFrameworkCore;
-using BCrypt.Net;
+using PosServer.Models;
+using PosServer.Services;
 
 namespace PosServer.Controllers;
 
@@ -15,30 +16,51 @@ public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
     private readonly CentralDbContext _dbContext;
+    private readonly ITenantService _tenantService;
 
-    public AuthController(IConfiguration configuration, CentralDbContext dbContext)
+    public AuthController(IConfiguration configuration, CentralDbContext dbContext, ITenantService tenantService)
     {
         _configuration = configuration;
         _dbContext = dbContext;
+        _tenantService = tenantService;
     }
 
-        [HttpPost("login")]
+    [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
+        var tenantId = _tenantService.GetTenantId();
+        
         try 
         {
-            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username.ToLower() == request.Username.ToLower());
+            // First we try to match by exact TenantId (if provided via Token, but this is a login so usually no token).
+            // But we'll try it as requested. If tenantId is empty, it might mean the request has no token.
+            // If the user's snippet insists on this, we'll include it.
+            // Wait, their snippet used `&& u.Pin == request.Pin`. Our LoginRequest has `Password`.
             
-            if (user != null && user.Pin == request.Password)
+            var user = await _dbContext.Users
+                .FirstOrDefaultAsync(u => (tenantId == "" || u.TenantId == tenantId)
+                                       && u.Username.ToLower() == request.Username.ToLower() 
+                                       && u.Pin == request.Password 
+                                       && u.IsActive);
+                        
+            if (user != null)
             {
                 var token = GenerateJwtToken(user.Username, user.TenantId);
-                return Ok(new { Token = token, TenantId = user.TenantId ?? "default" });
+                // Return exactly what the user requested: { user.Id, user.Username, user.Role, user.TenantId }
+                // PLUS the Token so it continues to work with other clients
+                return Ok(new { 
+                    Token = token, 
+                    TenantId = user.TenantId ?? "default",
+                    user.Id, 
+                    user.Username, 
+                    user.Role 
+                });
             }
-            return Unauthorized();
+            return Unauthorized(new { Message = "Credenciales inválidas o usuario no activo." });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { Message = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
+            return StatusCode(500, new { Error = "Error en la autenticación", Details = ex.Message });
         }
     }
 
@@ -65,10 +87,4 @@ public class AuthController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-}
-
-public class LoginRequest
-{
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
 }

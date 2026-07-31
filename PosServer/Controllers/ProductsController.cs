@@ -1,109 +1,87 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PosServer.Data;
 using PosServer.Models;
-using System.Security.Claims;
+using PosServer.Services;
 
-namespace PosServer.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-[Authorize]
-public class ProductsController : ControllerBase
+namespace PosServer.Controllers
 {
-    private readonly CentralDbContext _context;
-
-    public ProductsController(CentralDbContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class ProductsController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly CentralDbContext _context;
+        private readonly ITenantService _tenantService;
 
-    private string GetTenantId() => User.FindFirstValue("TenantId") ?? string.Empty;
-
-    [HttpGet]
-    public async Task<IActionResult> GetProducts()
-    {
-        try
+        public ProductsController(CentralDbContext context, ITenantService tenantService)
         {
-            var tenantId = GetTenantId();
+            _context = context;
+            _tenantService = tenantService;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetProducts()
+        {
+            var tenantId = _tenantService.GetTenantId();
             var products = await _context.Products
                 .Where(p => p.TenantId == tenantId)
                 .ToListAsync();
             return Ok(products);
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine("ERROR GetProducts/SyncProduct: " + ex.ToString());
-            return StatusCode(500, new { Error = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
-        }
-    }
 
-    [HttpGet("changes")]
-    public async Task<IActionResult> GetChanges([FromQuery] string? since)
-    {
-        try 
+        [HttpGet("changes")]
+        public async Task<IActionResult> GetChanges([FromQuery] string? since)
         {
-            var tenantId = GetTenantId();
-            
+            var tenantId = _tenantService.GetTenantId();
             DateTime sinceDateTime = DateTime.MinValue;
+
+            // Parseo seguro de fecha ISO 8601 UTC para Linux / Docker
             if (!string.IsNullOrWhiteSpace(since))
             {
-                if (!DateTime.TryParse(since, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal, out sinceDateTime))
+                if (!DateTime.TryParse(since, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out sinceDateTime))
                 {
                     sinceDateTime = DateTime.MinValue;
                 }
             }
 
-            var changedProducts = await _context.Products
-                .Where(p => p.TenantId == tenantId && p.LastUpdated >= sinceDateTime)
+            var products = await _context.Products
+                .Where(p => p.TenantId == tenantId && p.LastUpdated > sinceDateTime)
                 .ToListAsync();
-            return Ok(changedProducts);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("ERROR GetProducts/SyncProduct: " + ex.ToString());
-            return StatusCode(500, new { Error = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
-        }
-    }
 
-    [HttpPost]
-    public async Task<IActionResult> SyncProduct([FromBody] Product product)
-    {
-        try
+            return Ok(products);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateOrUpdateProduct([FromBody] Product product)
         {
-            var tenantId = GetTenantId();
+            var tenantId = _tenantService.GetTenantId();
             product.TenantId = tenantId;
-            product.LastUpdated = product.LastUpdated.ToUniversalTime();
-            
-            var existing = await _context.Products.FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Barcode == product.Barcode);
-            
+            product.LastUpdated = DateTime.UtcNow;
+
+            var existing = await _context.Products
+                .FirstOrDefaultAsync(p => p.TenantId == tenantId && p.Barcode == product.Barcode);
+
             if (existing == null)
             {
-                product.Id = 0;
+                product.Id = 0; // Garantizar ID autonumerado en PostgreSQL
                 _context.Products.Add(product);
             }
             else
             {
-                if (product.LastUpdated > existing.LastUpdated)
-                {
-                    existing.Name = product.Name;
-                    existing.Price = product.Price;
-                    existing.StockQuantity = product.StockQuantity;
-                    existing.Category = product.Category;
-                    existing.MinStockThreshold = product.MinStockThreshold;
-                    existing.CustomAttributes = product.CustomAttributes;
-                    existing.LastUpdated = product.LastUpdated;
-                    _context.Products.Update(existing);
-                }
+                existing.Name = product.Name;
+                existing.Price = product.Price;
+                existing.StockQuantity = product.StockQuantity;
+                existing.MinStockThreshold = product.MinStockThreshold;
+                existing.Category = product.Category;
+                existing.CustomAttributes = product.CustomAttributes;
+                existing.LastUpdated = DateTime.UtcNow;
             }
+
             await _context.SaveChangesAsync();
-            return Ok(new { Success = true });
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("ERROR GetProducts/SyncProduct: " + ex.ToString());
-            return StatusCode(500, new { Error = ex.Message, Stack = ex.StackTrace, Inner = ex.InnerException?.Message });
+            return Ok(product);
         }
     }
 }

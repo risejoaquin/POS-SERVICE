@@ -53,6 +53,12 @@ public class CentralDbContext : DbContext
         modelBuilder.Entity<Order>()
             .HasIndex(o => o.OrderDate);
 
+        modelBuilder.Entity<Order>()
+            .HasMany(o => o.Items)
+            .WithOne(i => i.Order)
+            .HasForeignKey(i => i.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // Configuración de CustomAttributes y Filtros Globales (Global Query Filters)
         
         modelBuilder.Entity<Product>(entity => {
