@@ -99,6 +99,47 @@
                     </StackPanel>
                 </Border>
 
+                
+                <!-- Usuarios Iniciales -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Usuarios Iniciales (Admin y Empleado)" Style="{StaticResource HeaderStyle}"/>
+                        
+                        <Grid Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="15"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Admin Username:" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtAdminUsername" Text="admin" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Admin PIN:" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtAdminPin" Text="admin123" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <Grid Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="15"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Employee Username:" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtEmployeeUsername" Text="cajero" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Employee PIN:" Style="{StaticResource LabelStyle}"/>
+                                <TextBox x:Name="TxtEmployeePin" Text="1234" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
                 <!-- Identidad y Branding -->
                 <Border Style="{StaticResource CardStyle}">
                     <StackPanel>

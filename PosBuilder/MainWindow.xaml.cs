@@ -136,6 +136,10 @@ namespace PosBuilder
             string dbUrl = "";
             string jwtIssuer = "";
             string jwtAudience = "";
+            string adminUser = "";
+            string adminPin = "";
+            string empUser = "";
+            string empPin = "";
             
             bool modCoupons = false, modLoyalty = false, modInventory = false;
             bool payCash = false, payCard = false, payTransfer = false;
@@ -161,6 +165,10 @@ namespace PosBuilder
                 dbUrl = TxtDatabaseUrl.Text;
                 jwtIssuer = TxtJwtIssuer.Text;
                 jwtAudience = TxtJwtAudience.Text;
+                adminUser = TxtAdminUsername.Text;
+                adminPin = TxtAdminPin.Text;
+                empUser = TxtEmployeeUsername.Text;
+                empPin = TxtEmployeePin.Text;
 
                 modCoupons = ChkCoupons.IsChecked == true;
                 modLoyalty = ChkLoyalty.IsChecked == true;
@@ -224,6 +232,18 @@ namespace PosBuilder
             string envFilePath = Path.Combine(rootDir, "railway.env");
             File.WriteAllText(envFilePath, envContent);
             AppendLog($"Archivo de entorno para Railway generado en: {envFilePath}");
+
+            // Generate tenant SQL seed
+            string tenantSql = $@"-- Initial users for {storeName} ({tenantId})
+INSERT INTO ""Users"" (""Username"", ""Pin"", ""Role"", ""TenantId"") VALUES 
+('{adminUser}', '{adminPin}', 'Admin', '{tenantId}'),
+('{empUser}', '{empPin}', 'Cajero', '{tenantId}')
+ON CONFLICT DO NOTHING;
+";
+            string sqlFilePath = Path.Combine(rootDir, $"{tenantId}_seed.sql");
+            File.WriteAllText(sqlFilePath, tenantSql);
+            AppendLog($"Archivo de inicialización SQL generado en: {sqlFilePath}");
+
 
             // 3. Execute build_and_package.ps1
             string scriptPath = Path.Combine(posCoreDir, "build_and_package.ps1");
