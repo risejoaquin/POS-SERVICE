@@ -77,6 +77,19 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler(exceptionHandlerApp =>
+{
+    exceptionHandlerApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+
+        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var errorMessage = exceptionHandlerPathFeature?.Error.Message ?? "Error interno del servidor.";
+
+        await context.Response.WriteAsJsonAsync(new { error = errorMessage, details = exceptionHandlerPathFeature?.Error.StackTrace });
+    });
+});
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapGet("/", () => "POS Server is running!");
