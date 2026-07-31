@@ -30,6 +30,26 @@ public class AuthDelegatingHandler : DelegatingHandler
             request.Headers.Add("X-Tenant-Id", _sessionManager.CurrentTenantId);
         }
 
-        return await base.SendAsync(request, cancellationToken);
+        var response = await base.SendAsync(request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            _sessionManager.ClearSession();
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                var loginWindow = new PosCore.Views.LoginWindow();
+                System.Windows.Application.Current.MainWindow = loginWindow;
+                loginWindow.Show();
+                
+                // Cierra la ventana principal si sigue abierta
+                foreach (System.Windows.Window window in System.Windows.Application.Current.Windows)
+                {
+                    if (window != loginWindow)
+                    {
+                        window.Close();
+                    }
+                }
+            });
+        }
+        return response;
     }
 }

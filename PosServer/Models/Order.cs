@@ -18,6 +18,7 @@ public class Order
     public string? PaymentDetails { get; set; } = string.Empty;
 
     public string? TenantId { get; set; } = string.Empty;
+    public string ClientSideId { get; set; } = string.Empty;
     public Dictionary<string, object> CustomAttributes { get; set; } = new();
     public List<OrderItem> Items { get; set; } = new();
 }

@@ -1,19 +1,26 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using System.Threading;
 
 namespace PosServer.Services;
 
 public class TenantService : ITenantService
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private static readonly AsyncLocal<string> _tenantId = new AsyncLocal<string>();
 
-    public TenantService(IHttpContextAccessor httpContextAccessor)
+    public void SetTenantId(string tenantId)
     {
-        _httpContextAccessor = httpContextAccessor;
+        _tenantId.Value = tenantId;
     }
 
     public string GetTenantId()
     {
-        return _httpContextAccessor.HttpContext?.User?.FindFirstValue("TenantId") ?? string.Empty;
+        return _tenantId.Value ?? string.Empty;
     }
+}
+
+public interface ITenantService
+{
+    void SetTenantId(string tenantId);
+    string GetTenantId();
 }

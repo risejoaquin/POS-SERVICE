@@ -30,6 +30,12 @@ namespace PosServer.Controllers
             var tenantId = _tenantService.GetTenantId();
             order.TenantId = tenantId;
 
+            // Validar idempotencia si viene ClientSideId
+            if (!string.IsNullOrEmpty(order.ClientSideId) && await _context.Orders.AnyAsync(o => o.ClientSideId == order.ClientSideId && o.TenantId == tenantId))
+            {
+                return Ok(new { Message = "La orden ya había sido registrada anteriormente (Idempotencia)." });
+            }
+
             // Resetear el ID de la Orden para evitar conflicto de Clave Primaria en PostgreSQL
             order.Id = 0;
 
@@ -37,6 +43,13 @@ namespace PosServer.Controllers
             {
                 foreach (var item in order.Items)
                 {
+                    // Validar integridad referencial (Producto)
+                    var productExists = await _context.Products.AnyAsync(p => p.Barcode == item.ProductBarcode && p.TenantId == tenantId);
+                    if (!productExists)
+                    {
+                        return BadRequest(new { Message = $"El producto con código de barras {item.ProductBarcode} no existe en el catálogo central." });
+                    }
+
                     item.TenantId = tenantId;
                     item.Id = 0;      // Resetear ID del ítem
                     item.OrderId = 0; // Desvincular clave foránea asignada en el SQLite local

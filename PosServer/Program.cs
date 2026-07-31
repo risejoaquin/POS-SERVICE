@@ -70,6 +70,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!))
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var dbContext = context.HttpContext.RequestServices.GetRequiredService<CentralDbContext>();
+                var username = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                var tenantId = context.Principal?.FindFirstValue("TenantId");
+                if (!string.IsNullOrEmpty(username))
+                {
+                    var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Username == username && (tenantId == null || u.TenantId == tenantId));
+                    if (user == null || !user.IsActive)
+                    {
+                        context.Fail("Usuario inactivo o revocado.");
+                    }
+                }
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -120,6 +137,7 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
+app.UseMiddleware<PosServer.Middlewares.TenantMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 

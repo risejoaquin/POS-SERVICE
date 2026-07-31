@@ -52,7 +52,7 @@ public class LicenseController : ControllerBase
             return Ok(new { IsValid = false, Error = "La licencia está desactivada." });
         }
 
-        if (license.ValidUntil < DateTime.UtcNow)
+        if (license.ValidUntil.ToUniversalTime() < DateTime.UtcNow)
         {
             return Ok(new { IsValid = false, Error = "La licencia ha expirado." });
         }

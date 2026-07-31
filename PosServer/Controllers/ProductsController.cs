@@ -38,7 +38,6 @@ namespace PosServer.Controllers
             var tenantId = _tenantService.GetTenantId();
             DateTime sinceDateTime = DateTime.MinValue;
 
-            // Parseo seguro de fecha ISO 8601 UTC para Linux / Docker
             if (!string.IsNullOrWhiteSpace(since))
             {
                 if (!DateTime.TryParse(since, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out sinceDateTime))

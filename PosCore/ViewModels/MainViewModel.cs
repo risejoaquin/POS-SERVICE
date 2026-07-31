@@ -456,7 +456,29 @@ public partial class MainViewModel : ObservableObject
                 CreatedAt = System.DateTime.Now
             });
 
-            await _dbContext.SaveChangesAsync();
+                        int retries = 3;
+            bool saveSuccess = false;
+            while (retries > 0 && !saveSuccess)
+            {
+                try
+                {
+                    await _dbContext.SaveChangesAsync();
+                    saveSuccess = true;
+                }
+                catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+                {
+                    retries--;
+                    if (retries == 0) throw;
+                    foreach (var entry in ex.Entries)
+                    {
+                        var databaseValues = await entry.GetDatabaseValuesAsync();
+                        if (databaseValues != null)
+                        {
+                            entry.OriginalValues.SetValues(databaseValues);
+                        }
+                    }
+                }
+            }
             
             _ticketPrinterService.PrintTicket(order);
             
