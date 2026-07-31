@@ -147,6 +147,7 @@ public partial class App : Application
         using (var scope = ServiceProvider.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<PosDbContext>();
+            dbContext.Database.EnsureCreated();
             var connStr = secureSettings.DatabaseSettings.ConnectionString;
             
             DatabaseBackupService.ManageDatabaseBackup(connStr);
@@ -154,7 +155,7 @@ public partial class App : Application
             try 
             {
                 try {
-                    dbContext.Database.EnsureCreated();
+                    
                     
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN Category TEXT NOT NULL DEFAULT 'General';"); } catch { }
                     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN CustomerName TEXT NOT NULL DEFAULT '';"); } catch { }

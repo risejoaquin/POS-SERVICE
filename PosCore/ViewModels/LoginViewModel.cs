@@ -115,7 +115,7 @@ public partial class LoginViewModel : ObservableObject
             return;
         }
 
-        ErrorMessage = "Usuario/PIN incorrecto.";
+        ErrorMessage = "No se pudo iniciar sesión. Verifique sus credenciales o la conexión con el servidor.";
         IsLoading = false;
     }
 }

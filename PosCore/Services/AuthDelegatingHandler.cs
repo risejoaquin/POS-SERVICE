@@ -17,15 +17,19 @@ public class AuthDelegatingHandler : DelegatingHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrEmpty(_sessionManager.Token))
+        if (!string.IsNullOrWhiteSpace(_sessionManager.Token))
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _sessionManager.Token);
         }
 
-        var response = await base.SendAsync(request, cancellationToken);
-        
-        // Handle token refresh logic here if needed
-        
-        return response;
+        if (!string.IsNullOrWhiteSpace(_sessionManager.CurrentTenantId))
+        {
+            if (request.Headers.Contains("X-Tenant-Id"))
+                request.Headers.Remove("X-Tenant-Id");
+
+            request.Headers.Add("X-Tenant-Id", _sessionManager.CurrentTenantId);
+        }
+
+        return await base.SendAsync(request, cancellationToken);
     }
 }

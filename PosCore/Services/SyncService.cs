@@ -87,7 +87,9 @@ public class SyncService
 
                 foreach (var message in pendingMessages)
                 {
-                    bool success = false;
+                    try
+                    {
+                        bool success = false;
 
                     if (message.EventType == "OrderCreated")
                     {
@@ -108,14 +110,23 @@ public class SyncService
 
                     if (success)
                     {
-                        message.ProcessedAt = DateTime.Now;
+                        message.ProcessedAt = DateTime.UtcNow;
                         _logger.LogInformation($"Mensaje ID {message.Id} ({message.EventType}) sincronizado con éxito.");
                     }
                     else
                     {
                         message.RetryCount++;
                         _logger.LogWarning($"Fallo al sincronizar Mensaje ID {message.Id}. Intento {message.RetryCount}. Aplicando Backoff indefinido.");
-                        break; 
+                        await dbContext.SaveChangesAsync();
+                        break;
+                    }
+                    }
+                    catch (Exception ex)
+                    {
+                        message.RetryCount++;
+                        _logger.LogWarning($"Excepcion al sincronizar Mensaje ID {message.Id}: {ex.Message}");
+                        await dbContext.SaveChangesAsync();
+                        break;
                     }
                 }
 

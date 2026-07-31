@@ -34,6 +34,12 @@ public class LicenseService
                 var result = await response.Content.ReadFromJsonAsync<LicenseValidationResult>();
                 if (result != null && result.IsValid)
                 {
+                    if (result.ValidUntil.HasValue && result.ValidUntil.Value.ToUniversalTime() < DateTime.UtcNow)
+                    {
+                        MessageBox.Show("Licencia Expirada.", "Error de Licencia", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return false;
+                    }
+
                     // Guardar fecha de última validación en memoria. Para persistir se requiere guardar en config.
                     _settings.License.LastValidationDate = DateTime.UtcNow;
                     return true;

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -11,6 +12,10 @@ namespace PosCore.Services;
 public class ApiService : IApiService
 {
     private readonly HttpClient _httpClient;
+    private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     public ApiService(HttpClient httpClient, IOptions<AppSettings> settings)
     {
@@ -22,7 +27,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var products = await _httpClient.GetFromJsonAsync<List<Product>>("api/products");
+            var products = await _httpClient.GetFromJsonAsync<List<Product>>("api/products", _jsonOptions);
             return products ?? new List<Product>();
         }
         catch (Exception)
@@ -35,7 +40,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var products = await _httpClient.GetFromJsonAsync<List<Product>>($"api/products/changes?since={since:O}");
+            var products = await _httpClient.GetFromJsonAsync<List<Product>>($"api/products/changes?since={since:O}", _jsonOptions);
             return products ?? new List<Product>();
         }
         catch (Exception)
@@ -48,7 +53,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("api/products", product);
+            var response = await _httpClient.PostAsJsonAsync("api/products", product, _jsonOptions);
             return response.IsSuccessStatusCode;
         }
         catch (Exception)
@@ -61,7 +66,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("api/orders", order);
+            var response = await _httpClient.PostAsJsonAsync("api/orders", order, _jsonOptions);
             return response.IsSuccessStatusCode;
         }
         catch (Exception)
@@ -74,10 +79,10 @@ public class ApiService : IApiService
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("api/auth/login", new LoginRequest { Username = username, Password = password });
+            var response = await _httpClient.PostAsJsonAsync("api/auth/login", new LoginRequest { Username = username, Password = password }, _jsonOptions);
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<LoginResponse>();
+                return await response.Content.ReadFromJsonAsync<LoginResponse>(_jsonOptions);
             }
             return null;
         }

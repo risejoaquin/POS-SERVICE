@@ -73,6 +73,12 @@ public class PosDbContext : DbContext
         return base.SaveChangesAsync(cancellationToken);
     }
     
+    public void EnableWalMode()
+    {
+        Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
+        Database.ExecuteSqlRaw("PRAGMA busy_timeout=5000;");
+    }
+
     public override int SaveChanges()
     {
         AssignTenantIdToAddedEntities();
