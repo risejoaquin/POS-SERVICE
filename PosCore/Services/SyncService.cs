@@ -17,6 +17,7 @@ public class SyncService
     private readonly ILogger<SyncService> _logger;
     private readonly System.Timers.Timer _timer;
     private bool _isSyncing = false;
+    private readonly System.Threading.SemaphoreSlim _syncSemaphore = new System.Threading.SemaphoreSlim(1, 1);
     private DateTime _lastSyncTime = DateTime.MinValue;
     
     public event Action? OnSyncCompleted;
@@ -42,7 +43,7 @@ public class SyncService
         
         // Configurar timer para ejecutar cada 10 segundos
         _timer = new System.Timers.Timer(10000);
-        _timer.Elapsed += async (sender, e) => await SyncDataAsync();
+        _timer.Elapsed += async (sender, e) => { try { await SyncDataAsync(); } catch (Exception ex) { _logger.LogError(ex, "Sync failed"); } };
     }
 
     public void Start()
@@ -78,7 +79,7 @@ public class SyncService
             var pendingMessages = await dbContext.OutboxMessages
                 .Where(m => m.ProcessedAt == null)
                 .OrderBy(m => m.CreatedAt)
-                .Take(50)
+                .Take(500)
                 .ToListAsync();
 
             if (pendingMessages.Any())
@@ -164,7 +165,7 @@ public class SyncService
         }
         finally
         {
-            _isSyncing = false;
+            _syncSemaphore.Release();
         }
     }
 
@@ -214,15 +215,7 @@ public class SyncService
                             
                             // Fusionar inventario de forma segura: si local es menor, restarle a la nube esa diferencia
                             // Esto asume que la diferencia local fue por ventas offline.
-                            if (localProduct.StockQuantity < cloudProduct.StockQuantity)
-                            {
-                                int diff = cloudProduct.StockQuantity - localProduct.StockQuantity;
-                                localProduct.StockQuantity = cloudProduct.StockQuantity - diff; // Es decir, se queda con la venta local pero ajustado.
-                            }
-                            else 
-                            {
-                                localProduct.StockQuantity = cloudProduct.StockQuantity;
-                            }
+                            localProduct.StockQuantity = Math.Min(localProduct.StockQuantity, cloudProduct.StockQuantity);
                             
                             localProduct.LastUpdated = cloudProduct.LastUpdated;
                             dbContext.Products.Update(localProduct);

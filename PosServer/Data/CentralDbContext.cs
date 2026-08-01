@@ -51,7 +51,7 @@ public class CentralDbContext : DbContext
             .IsUnique();
             
         modelBuilder.Entity<Order>()
-            .HasIndex(o => o.OrderDate);
+            .HasIndex(o => new { o.TenantId, o.OrderDate });
 
         modelBuilder.Entity<Order>()
             .HasMany(o => o.Items)
@@ -62,44 +62,44 @@ public class CentralDbContext : DbContext
         // Configuración de CustomAttributes y Filtros Globales (Global Query Filters)
         
         modelBuilder.Entity<Product>(entity => {
-            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
             entity.Property(e => e.CustomAttributes)
                   
                   .HasConversion(dictConverter);
         });
 
         modelBuilder.Entity<Order>(entity => {
-            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
             entity.Property(e => e.CustomAttributes)
                   
                   .HasConversion(dictConverter);
         });
 
         modelBuilder.Entity<OrderItem>(entity => {
-            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
             entity.Property(e => e.CustomAttributes)
                   
                   .HasConversion(dictConverter);
         });
 
         modelBuilder.Entity<User>(entity => {
-            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
         });
 
         modelBuilder.Entity<License>(entity => {
-            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
         });
 
         modelBuilder.Entity<ProductModifier>(entity => {
-            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
         });
         
         modelBuilder.Entity<ModifierOption>(entity => {
-            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
         });
 
         modelBuilder.Entity<ProductModifierLink>(entity => {
-            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId || CurrentTenantId == "");
+            entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
         });
     }
 }

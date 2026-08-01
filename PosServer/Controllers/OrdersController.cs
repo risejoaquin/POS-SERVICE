@@ -22,7 +22,7 @@ namespace PosServer.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromBody] Order order)
+        public async Task<IActionResult> CreateOrder([FromBody, System.ComponentModel.DataAnnotations.Required] Order order)
         {
             if (order == null)
                 return BadRequest("Payload de la orden es nulo.");
@@ -33,7 +33,8 @@ namespace PosServer.Controllers
             // Validar idempotencia si viene ClientSideId
             if (!string.IsNullOrEmpty(order.ClientSideId) && await _context.Orders.AnyAsync(o => o.ClientSideId == order.ClientSideId && o.TenantId == tenantId))
             {
-                return Ok(new { Message = "La orden ya había sido registrada anteriormente (Idempotencia)." });
+                var existingOrder = await _context.Orders.FirstOrDefaultAsync(o => o.ClientSideId == order.ClientSideId && o.TenantId == tenantId);
+                return Ok(new { Message = "La orden ya había sido registrada anteriormente (Idempotencia).", ServerOrderId = existingOrder?.Id });
             }
 
             // Resetear el ID de la Orden para evitar conflicto de Clave Primaria en PostgreSQL

@@ -200,19 +200,7 @@ public partial class App : Application
                 
                 // Seed inicial
                 try {
-                    if (!Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(dbContext.Users).Any(u => u.Username == "admin"))
-                    {
-                        dbContext.Users.Add(new PosCore.Models.User { Username = "admin", Pin = "1234", Role = "Admin", IsActive = true, CreatedAt = System.DateTime.Now, TenantId = "LOCAL" });
-                    }
-                    if (!Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(dbContext.Users).Any(u => u.Username == "cajero1"))
-                    {
-                        dbContext.Users.Add(new PosCore.Models.User { Username = "cajero1", Pin = "1111", Role = "Cashier", IsActive = true, CreatedAt = System.DateTime.Now, TenantId = "LOCAL" });
-                    }
-                    if (!Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(dbContext.Users).Any(u => u.Username == "cajero2"))
-                    {
-                        dbContext.Users.Add(new PosCore.Models.User { Username = "cajero2", Pin = "2222", Role = "Cashier", IsActive = true, CreatedAt = System.DateTime.Now, TenantId = "LOCAL" });
-                    }
-                    dbContext.SaveChanges();
+
                     if (!Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(dbContext.Products).Any())
                     {
                         dbContext.Products.AddRange(

@@ -34,16 +34,6 @@ public class LicenseController : ControllerBase
 
         if (license == null)
         {
-            // Para propósitos de pruebas locales, permitir VAL-
-            if (request.LicenseKey.StartsWith("VAL-TRIAL-"))
-            {
-                return Ok(new 
-                { 
-                    IsValid = true, 
-                    MaxTerminals = 5,
-                    ValidUntil = DateTime.UtcNow.AddDays(7)
-                });
-            }
             return Ok(new { IsValid = false, Error = "Licencia no encontrada." });
         }
 
@@ -67,7 +57,7 @@ public class LicenseController : ControllerBase
     }
 
     [HttpPost("generate")]
-    [Authorize] // Require JWT admin token
+    [Authorize(Roles = "SuperAdmin")] // Require JWT admin token
     public async Task<IActionResult> GenerateLicense([FromBody] GenerateLicenseRequest request)
     {
         // En un caso real, validaríamos que el usuario autenticado tiene rol de SuperAdmin

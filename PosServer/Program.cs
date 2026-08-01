@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using System.Text;
@@ -111,7 +112,8 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',') ?? new[] { "https://trusted-domain.com" };
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -219,36 +221,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Seed Database in a separate scope to ensure clean connection
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<CentralDbContext>();
-    try 
-    {
-        if (!dbContext.Users.Any(u => u.Username == "admin"))
-        {
-            dbContext.Users.Add(new User
-            {
-                Username = "admin",
-                Pin = "admin123",
-                TenantId = "TENANT_001",
-                Role = "Admin"
-            });
-            dbContext.Users.Add(new User
-            {
-                Username = "cajero",
-                Pin = "cajero123",
-                TenantId = "TENANT_001",
-                Role = "Cajero"
-            });
-            dbContext.SaveChanges();
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error seeding database: {ex.Message}");
-    }
-}
+
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Run($"http://0.0.0.0:{port}");
