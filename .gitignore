@@ -53,3 +53,5 @@ logs/
 temp_logs/
 logs_backup_*.zip
 *.patch
+appsettings.*.json
+!appsettings.example.json

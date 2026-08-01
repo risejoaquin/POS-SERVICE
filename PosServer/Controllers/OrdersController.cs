@@ -87,18 +87,23 @@ namespace PosServer.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetOrders()
+        public async Task<IActionResult> GetOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
             var tenantId = _tenantService.GetTenantId();
-            var orders = await _context.Orders
+            
+            var query = _context.Orders
                 .AsNoTracking()
-                .Include(o => o.Items)
                 .Where(o => o.TenantId == tenantId)
-                .OrderByDescending(o => o.OrderDate)
-                .Take(100) // Límite de paginación para evitar saturación de memoria
+                .OrderByDescending(o => o.OrderDate).ThenByDescending(o => o.Id);
+                
+            var total = await query.CountAsync();
+            var orders = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(o => o.Items)
                 .ToListAsync();
-
-            return Ok(orders);
+                
+            return Ok(new { data = orders, page, pageSize, total });
         }
 
         [HttpGet("{id}")]

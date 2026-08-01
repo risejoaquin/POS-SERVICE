@@ -126,6 +126,7 @@ public class SyncService
                         {
                             _logger.LogWarning($"Fallo al sincronizar Mensaje ID {message.Id}. Intento {message.RetryCount}. Aplicando Backoff indefinido.");
                             await dbContext.SaveChangesAsync();
+                            await Task.Delay((int)Math.Pow(2, message.RetryCount) * 1000);
                             break;
                         }
                     }
@@ -142,6 +143,7 @@ public class SyncService
                         {
                             _logger.LogWarning($"Excepcion al sincronizar Mensaje ID {message.Id}: {ex.Message}");
                             await dbContext.SaveChangesAsync();
+                            await Task.Delay((int)Math.Pow(2, message.RetryCount) * 1000);
                             break;
                         }
                     }

@@ -43,7 +43,11 @@ if (connString.StartsWith("postgres://") || connString.StartsWith("postgresql://
     connString = $"Host={uri.Host};Port={(uri.IsDefaultPort ? 5432 : uri.Port)};Database={uri.LocalPath.TrimStart('/')};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=True";
 }
 
-if (connString.Contains("supabase.com") || connString.Contains("pooler"))
+if (builder.Configuration.GetValue<bool>("EnableLegacyTimestamp"))
+{
+    AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+}
+if ((connString.Contains("supabase.com") || connString.Contains("pooler")) && builder.Configuration.GetValue<bool>("ApplySupabaseFix", true))
 {
     // Fix for Supabase Transaction Pooler (pgbouncer) which breaks EF Core Prepared Statements
     if (!connString.Contains("Max Auto Prepare"))
@@ -59,7 +63,8 @@ builder.Services.AddDbContext<CentralDbContext>(options =>
     }));
 
 // Configure JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? builder.Configuration["Jwt:Key"];
+if (string.IsNullOrEmpty(jwtKey)) throw new InvalidOperationException("JWT_KEY no configurada");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
@@ -99,10 +104,21 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddRateLimiter(options =>
 {
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? httpContext.Request.Headers.Host.ToString(),
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
     options.AddFixedWindowLimiter("LoginPolicy", opt =>
     {
         opt.Window = TimeSpan.FromMinutes(1);
-        opt.PermitLimit = 5;
+        opt.PermitLimit = 20; // Increased permit limit for login
         opt.QueueLimit = 0;
     });
     options.RejectionStatusCode = 429;
@@ -177,45 +193,20 @@ using (var scope = app.Services.CreateScope())
     }
     catch
     {
-        // Tables already exist, try to add new columns for updates
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"IsReturned\" boolean DEFAULT false;"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"ReturnReason\" text DEFAULT '';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"AuthorizedBy\" text DEFAULT '';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"PaymentDetails\" text DEFAULT '';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"SubTotal\" numeric DEFAULT 0;"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"TaxAmount\" numeric DEFAULT 0;"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"CustomerName\" text DEFAULT '';"); } catch { }
-        
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" ADD COLUMN \"Role\" text DEFAULT 'Admin';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" ADD COLUMN \"IsActive\" boolean DEFAULT true;"); } catch { }
-        
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"ProductBarcode\" text DEFAULT '';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"LastUpdated\" timestamp with time zone DEFAULT NOW();"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"Notes\" text DEFAULT '';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"Discount\" numeric DEFAULT 0;"); } catch { }
-        
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Products\" ADD COLUMN \"Category\" text DEFAULT 'General';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Products\" ADD COLUMN \"MinStockThreshold\" integer DEFAULT 10;"); } catch { }
 
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Products\" ADD COLUMN \"CustomAttributes\" text DEFAULT '{}';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Products\" ALTER COLUMN \"CustomAttributes\" TYPE text USING \"CustomAttributes\"::text;"); } catch { }
         
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ADD COLUMN \"CustomAttributes\" text DEFAULT '{}';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Orders\" ALTER COLUMN \"CustomAttributes\" TYPE text USING \"CustomAttributes\"::text;"); } catch { }
         
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ADD COLUMN \"CustomAttributes\" text DEFAULT '{}';"); } catch { }
-        try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"OrderItems\" ALTER COLUMN \"CustomAttributes\" TYPE text USING \"CustomAttributes\"::text;"); } catch { }
+        
+
+        
+        
         try {
-            dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"ProductModifiers\" (\"Id\" serial PRIMARY KEY, \"Name\" text, \"Description\" text, \"IsRequired\" boolean, \"MinSelections\" integer, \"MaxSelections\" integer, \"TenantId\" text, \"LastUpdated\" timestamp with time zone)"); 
         } catch { }
         try { 
-            dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"ModifierOptions\" (\"Id\" serial PRIMARY KEY, \"ProductModifierId\" integer, \"Name\" text, \"PriceAdjustment\" numeric, \"IsDefault\" boolean, \"SortOrder\" integer, \"TenantId\" text)"); 
         } catch { }
         try { 
-            dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"ProductModifierLinks\" (\"Id\" serial PRIMARY KEY, \"ProductId\" integer, \"ProductModifierId\" integer, \"SortOrder\" integer, \"TenantId\" text)"); 
         } catch { }
         try { 
-            dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS \"Licenses\" (\"Id\" serial PRIMARY KEY, \"LicenseKey\" text, \"TenantId\" text, \"Description\" text, \"IsActive\" boolean, \"MaxTerminals\" integer, \"ValidUntil\" timestamp with time zone, \"CreatedAt\" timestamp with time zone)"); 
         } catch { }
 
     }

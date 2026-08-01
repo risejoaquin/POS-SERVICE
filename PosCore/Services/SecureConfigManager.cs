@@ -91,8 +91,9 @@ public static class SecureConfigManager
             var decryptedBytes = ProtectedData.Unprotect(encryptedBytes, null, DataProtectionScope.CurrentUser);
             return Encoding.UTF8.GetString(decryptedBytes);
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine("Failed to decrypt: " + ex.Message);
             return string.Empty;
         }
     }

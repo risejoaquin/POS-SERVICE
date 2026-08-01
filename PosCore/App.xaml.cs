@@ -28,7 +28,8 @@ public partial class App : Application
     {
         try
         {
-            using (var mgr = new UpdateManager("https://pos-service-production-ad3c.up.railway.app/releases"))
+            var updateUrl = Environment.GetEnvironmentVariable("POS_UPDATE_URL") ?? "https://pos-service-production-ad3c.up.railway.app/releases";
+            using (var mgr = new UpdateManager(updateUrl))
             {
                 if (mgr.IsInstalledApp)
                 {
@@ -73,7 +74,8 @@ public partial class App : Application
         // 1. Manejar eventos de Squirrel (accesos directos al instalar/desinstalar)
         try 
         {
-            using (var mgr = new UpdateManager("https://pos-service-production-ad3c.up.railway.app/releases"))
+            var updateUrl = Environment.GetEnvironmentVariable("POS_UPDATE_URL") ?? "https://pos-service-production-ad3c.up.railway.app/releases";
+            using (var mgr = new UpdateManager(updateUrl))
             {
                 SquirrelAwareApp.HandleEvents(
                     onInitialInstall: (v, t) => mgr.CreateShortcutForThisExe(),
@@ -158,31 +160,30 @@ public partial class App : Application
                 try {
                     
                     
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN Category TEXT NOT NULL DEFAULT 'General';"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN CustomerName TEXT NOT NULL DEFAULT '';"); } catch { }
 
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN MinStockThreshold INTEGER NOT NULL DEFAULT 10;"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OutboxMessages ADD COLUMN RetryCount INTEGER NOT NULL DEFAULT 0;"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN ReturnReason TEXT NOT NULL DEFAULT '';"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN AuthorizedBy TEXT NOT NULL DEFAULT '';"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN PaymentDetails TEXT NOT NULL DEFAULT '';"); } catch { }
+
+
+
+
+
+
+
                     
-                    try { dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS ProductModifiers (Id INTEGER NOT NULL CONSTRAINT PK_ProductModifiers PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Description TEXT NOT NULL, IsRequired INTEGER NOT NULL, MinSelections INTEGER NOT NULL, MaxSelections INTEGER NOT NULL, TenantId TEXT NOT NULL, LastUpdated TEXT NOT NULL)"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS ModifierOptions (Id INTEGER NOT NULL CONSTRAINT PK_ModifierOptions PRIMARY KEY AUTOINCREMENT, ProductModifierId INTEGER NOT NULL, Name TEXT NOT NULL, PriceAdjustment TEXT NOT NULL, IsDefault INTEGER NOT NULL, SortOrder INTEGER NOT NULL, TenantId TEXT NOT NULL, CONSTRAINT FK_ModifierOptions_ProductModifiers_ProductModifierId FOREIGN KEY (ProductModifierId) REFERENCES ProductModifiers (Id) ON DELETE CASCADE)"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS ProductModifierLinks (Id INTEGER NOT NULL CONSTRAINT PK_ProductModifierLinks PRIMARY KEY AUTOINCREMENT, ProductId INTEGER NOT NULL, ProductModifierId INTEGER NOT NULL, SortOrder INTEGER NOT NULL, TenantId TEXT NOT NULL, CONSTRAINT FK_ProductModifierLinks_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (Id) ON DELETE CASCADE, CONSTRAINT FK_ProductModifierLinks_ProductModifiers_ProductModifierId FOREIGN KEY (ProductModifierId) REFERENCES ProductModifiers (Id) ON DELETE CASCADE)"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS Users (Id INTEGER NOT NULL CONSTRAINT PK_Users PRIMARY KEY AUTOINCREMENT, Username TEXT NOT NULL, Pin TEXT NOT NULL, Role TEXT NOT NULL, IsActive INTEGER NOT NULL, CreatedAt TEXT NOT NULL, TenantId TEXT NOT NULL)"); } catch { }
 
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN SubTotal TEXT NOT NULL DEFAULT '0.0';"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN TaxAmount TEXT NOT NULL DEFAULT '0.0';"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OrderItem ADD COLUMN Notes TEXT NOT NULL DEFAULT '';"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OrderItem ADD COLUMN Discount TEXT NOT NULL DEFAULT '0.0';"); } catch { }
 
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN CustomAttributes TEXT NOT NULL DEFAULT '{}';"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE Orders ADD COLUMN CustomAttributes TEXT NOT NULL DEFAULT '{}';"); } catch { }
-                    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE OrderItem ADD COLUMN CustomAttributes TEXT NOT NULL DEFAULT '{}';"); } catch { }
+
+
+
+
+
+
+
+
+
+
+
 
                     try {
-                        dbContext.Database.ExecuteSqlRaw(@"
                             CREATE TABLE IF NOT EXISTS CashMovements (
                                 Id INTEGER NOT NULL CONSTRAINT PK_CashMovements PRIMARY KEY AUTOINCREMENT,
                                 ShiftId INTEGER NOT NULL,
@@ -194,8 +195,10 @@ public partial class App : Application
                             );");
                     } catch { }
 
-                    var relCreator = dbContext.Database.GetService<IRelationalDatabaseCreator>();
-                    relCreator.CreateTables();
+                    if (dbContext.Database.GetPendingMigrations().Any())
+                    {
+                        dbContext.Database.Migrate();
+                    }
                 } catch { }
                 
                 // Seed inicial

@@ -67,7 +67,7 @@ public class AuthController : ControllerBase
 
     private string GenerateJwtToken(string username, string tenantId)
     {
-        var jwtKey = _configuration["Jwt:Key"];
+        var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT_KEY no configurada");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
