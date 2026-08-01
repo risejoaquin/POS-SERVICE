@@ -30,6 +30,7 @@ public class LicenseController : ControllerBase
         }
 
         var license = await _context.Licenses
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(l => l.LicenseKey == request.LicenseKey);
 
         if (license == null)

@@ -184,6 +184,7 @@ public partial class App : Application
 
 
                     try {
+                        dbContext.Database.ExecuteSqlRaw(@"
                             CREATE TABLE IF NOT EXISTS CashMovements (
                                 Id INTEGER NOT NULL CONSTRAINT PK_CashMovements PRIMARY KEY AUTOINCREMENT,
                                 ShiftId INTEGER NOT NULL,

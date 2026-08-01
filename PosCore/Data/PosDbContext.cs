@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Text.Json;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -59,10 +60,16 @@ public class PosDbContext : DbContext
             v => JsonSerializer.Serialize(v, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
             v => JsonSerializer.Deserialize<Dictionary<string, object>>(v, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? new Dictionary<string, object>()
         );
+        var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var dictComparer = new ValueComparer<Dictionary<string, object>>(
+            (c1, c2) => JsonSerializer.Serialize(c1, jsonOptions) == JsonSerializer.Serialize(c2, jsonOptions),
+            c => c == null ? 0 : JsonSerializer.Serialize(c, jsonOptions).GetHashCode(),
+            c => c == null ? new Dictionary<string, object>() : JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(c, jsonOptions), jsonOptions) ?? new Dictionary<string, object>()
+        );
 
-        modelBuilder.Entity<Product>().Property(e => e.CustomAttributes).HasConversion(dictConverter);
-        modelBuilder.Entity<Order>().Property(e => e.CustomAttributes).HasConversion(dictConverter);
-        modelBuilder.Entity<OrderItem>().Property(e => e.CustomAttributes).HasConversion(dictConverter);
+        modelBuilder.Entity<Product>().Property(e => e.CustomAttributes).HasConversion(dictConverter, dictComparer);
+        modelBuilder.Entity<Order>().Property(e => e.CustomAttributes).HasConversion(dictConverter, dictComparer);
+        modelBuilder.Entity<OrderItem>().Property(e => e.CustomAttributes).HasConversion(dictConverter, dictComparer);
 
             
         // Multi-Tenant: Filtro Global

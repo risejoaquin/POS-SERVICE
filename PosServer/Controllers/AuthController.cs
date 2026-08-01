@@ -43,6 +43,7 @@ public class AuthController : ControllerBase
                 return BadRequest(new { Message = "Username y Password son requeridos." });
             }
             var user = await _dbContext.Users
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(u => (tenantId == "" || u.TenantId == tenantId)
                                        && u.Username.ToLower() == request.Username.ToLower() 
                                        && u.IsActive);

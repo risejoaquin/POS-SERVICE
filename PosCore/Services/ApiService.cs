@@ -40,7 +40,7 @@ public class ApiService : IApiService
     {
         try
         {
-            var products = await _httpClient.GetFromJsonAsync<List<Product>>($"api/products/changes?since={Uri.EscapeDataString(since.ToString(\"O\"))}", _jsonOptions);
+            var products = await _httpClient.GetFromJsonAsync<List<Product>>($"api/products/changes?since={Uri.EscapeDataString(since.ToString("O"))}", _jsonOptions);
             return products ?? new List<Product>();
         }
         catch (Exception)

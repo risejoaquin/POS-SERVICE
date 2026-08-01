@@ -11,7 +11,7 @@ namespace PosCore.Views
     public partial class TestModifiersWindow : Window
     {
         private decimal _basePrice = 65.00m;
-        private List<ProductModifier> _mockModifiers;
+        private List<ProductModifier> _mockModifiers = new();
         private List<CheckBox> _allCheckboxes = new();
         private List<RadioButton> _allRadioButtons = new();
 

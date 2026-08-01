@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore;
 using PosServer.Models;
 using PosServer.Services;
@@ -52,6 +53,12 @@ public class CentralDbContext : DbContext
             v => JsonSerializer.Serialize(v, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
             v => JsonSerializer.Deserialize<Dictionary<string, object>>(v, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? new Dictionary<string, object>()
         );
+        var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var dictComparer = new ValueComparer<Dictionary<string, object>>(
+            (c1, c2) => JsonSerializer.Serialize(c1, jsonOptions) == JsonSerializer.Serialize(c2, jsonOptions),
+            c => c == null ? 0 : JsonSerializer.Serialize(c, jsonOptions).GetHashCode(),
+            c => c == null ? new Dictionary<string, object>() : JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(c, jsonOptions), jsonOptions) ?? new Dictionary<string, object>()
+        );
 
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Username)
@@ -84,21 +91,21 @@ public class CentralDbContext : DbContext
             entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
             entity.Property(e => e.CustomAttributes)
                   
-                  .HasConversion(dictConverter);
+                  .HasConversion(dictConverter, dictComparer);
         });
 
         modelBuilder.Entity<Order>(entity => {
             entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
             entity.Property(e => e.CustomAttributes)
                   
-                  .HasConversion(dictConverter);
+                  .HasConversion(dictConverter, dictComparer);
         });
 
         modelBuilder.Entity<OrderItem>(entity => {
             entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
             entity.Property(e => e.CustomAttributes)
                   
-                  .HasConversion(dictConverter);
+                  .HasConversion(dictConverter, dictComparer);
         });
 
         modelBuilder.Entity<User>(entity => {

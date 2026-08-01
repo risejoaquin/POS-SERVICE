@@ -36,7 +36,7 @@ public class AuthDelegatingHandler : DelegatingHandler
             _sessionManager.ClearSession();
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                var loginWindow = new PosCore.Views.LoginWindow();
+                var loginWindow = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<PosCore.Views.LoginWindow>(PosCore.App.ServiceProvider!);
                 System.Windows.Application.Current.MainWindow = loginWindow;
                 loginWindow.Show();
                 
