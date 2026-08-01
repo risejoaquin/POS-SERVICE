@@ -42,6 +42,18 @@ public class PosDbContext : DbContext
         
         modelBuilder.Entity<Order>()
             .HasIndex(o => o.OrderDate);
+            
+        modelBuilder.Entity<OutboxMessage>()
+            .HasIndex(om => new { om.ProcessedAt, om.CreatedAt });
+            
+        modelBuilder.Entity<CashRegisterShift>()
+            .HasIndex(crs => crs.TenantId);
+            
+        modelBuilder.Entity<Order>()
+            .HasMany(o => o.Items)
+            .WithOne(oi => oi.Order)
+            .HasForeignKey(oi => oi.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         var dictConverter = new ValueConverter<Dictionary<string, object>, string>(
             v => JsonSerializer.Serialize(v, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
@@ -118,7 +130,7 @@ public class PosDbContext : DbContext
             var lastUpdatedProperty = entry.Entity.GetType().GetProperty("LastUpdated");
             if (lastUpdatedProperty != null)
             {
-                lastUpdatedProperty.SetValue(entry.Entity, DateTime.Now);
+                lastUpdatedProperty.SetValue(entry.Entity, DateTime.UtcNow);
             }
         }
     }

@@ -11,7 +11,18 @@ public class CentralDbContext : DbContext
 {
     private readonly ITenantService? _tenantService;
 
-    public string CurrentTenantId => _tenantService?.GetTenantId() ?? string.Empty;
+    public string CurrentTenantId 
+    { 
+        get 
+        {
+            var id = _tenantService?.GetTenantId() ?? string.Empty;
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new InvalidOperationException("CurrentTenantId is not set. Check TenantMiddleware configuration.");
+            }
+            return id;
+        }
+    }
 
     public CentralDbContext(DbContextOptions<CentralDbContext> options, ITenantService tenantService) : base(options)
     {
@@ -45,13 +56,21 @@ public class CentralDbContext : DbContext
         modelBuilder.Entity<User>()
             .HasIndex(u => u.Username)
             .IsUnique();
-            
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.TenantId);
+        
         modelBuilder.Entity<Product>()
             .HasIndex(p => new { p.TenantId, p.Barcode })
             .IsUnique();
-            
+        modelBuilder.Entity<Product>()
+            .HasIndex(p => p.TenantId);
+        
         modelBuilder.Entity<Order>()
-            .HasIndex(o => new { o.TenantId, o.OrderDate });
+            .HasIndex(o => new { o.TenantId, o.OrderDate })
+            .IsDescending(false, true);
+        
+        modelBuilder.Entity<OrderItem>()
+            .HasIndex(oi => oi.OrderId);
 
         modelBuilder.Entity<Order>()
             .HasMany(o => o.Items)
