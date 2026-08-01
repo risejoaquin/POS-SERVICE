@@ -18,9 +18,3 @@ public class TenantService : ITenantService
         return _tenantId.Value ?? string.Empty;
     }
 }
-
-public interface ITenantService
-{
-    void SetTenantId(string tenantId);
-    string GetTenantId();
-}
