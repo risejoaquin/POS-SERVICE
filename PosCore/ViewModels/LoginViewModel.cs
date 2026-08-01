@@ -86,7 +86,7 @@ public partial class LoginViewModel : ObservableObject
                 return;
             }
         }
-        catch { /* Fallback to local */ }
+        catch (Exception ex) { Serilog.Log.Error(ex, "Fallback to local error"); /* Fallback to local */ }
 
         // 2. Fallback: check local database
         var localUser = Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.IgnoreQueryFilters(_dbContext.Users).FirstOrDefault(u => u.Username.ToLower() == Username.ToLower() && u.Pin == Password);

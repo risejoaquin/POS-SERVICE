@@ -194,13 +194,13 @@ public partial class App : Application
                                 CreatedAt TEXT NOT NULL,
                                 TenantId TEXT NOT NULL
                             );");
-                    } catch { }
+                    } catch (Exception ex) { Serilog.Log.Error(ex, "Ignored exception"); }
 
                     if (dbContext.Database.GetPendingMigrations().Any())
                     {
                         dbContext.Database.Migrate();
                     }
-                } catch { }
+                } catch (Exception ex) { Serilog.Log.Error(ex, "Ignored exception"); }
                 
                 // Seed inicial
                 try {
@@ -214,7 +214,7 @@ public partial class App : Application
                         );
                         dbContext.SaveChanges();
                     }
-                } catch { }
+                } catch (Exception ex) { Serilog.Log.Error(ex, "Ignored exception"); }
 
             } 
             catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 11 || ex.SqliteErrorCode == 26 || ex.Message.Contains("malformed"))

@@ -60,6 +60,28 @@ namespace PosBuilder
                 MessageBox.Show("La API Base URL es inválida. Debe ser una URL completa (ej. https://api.midominio.com/).", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+            if (string.IsNullOrWhiteSpace(TxtAdminUsername.Text) || TxtAdminUsername.Text.Length < 3 || !Regex.IsMatch(TxtAdminUsername.Text, "^[a-zA-Z0-9_]+$"))
+            {
+                MessageBox.Show("El username del admin es inválido. Debe tener al menos 3 caracteres alfanuméricos.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(TxtAdminPin.Text) || TxtAdminPin.Text.Length < 4)
+            {
+                MessageBox.Show("El PIN del admin debe tener al menos 4 caracteres.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(TxtJwtIssuer.Text) || string.IsNullOrWhiteSpace(TxtJwtAudience.Text))
+            {
+                MessageBox.Show("Issuer y Audience de JWT son requeridos.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(PwdSecretKey.Password) || PwdSecretKey.Password.Length < 16)
+            {
+                MessageBox.Show("La clave secreta JWT debe tener al menos 16 caracteres para ser segura.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+
 
             BtnGenerate.IsEnabled = false;
             TxtLog.Text = "Iniciando proceso de empaquetado del POS Cliente...\n";
@@ -160,7 +182,7 @@ namespace PosBuilder
                 apiBaseUrl = TxtApiBaseUrl.Text;
                 if (!apiBaseUrl.EndsWith("/")) apiBaseUrl += "/";
                 
-                secretKey = PwdSecretKey.Password;
+                secretKey = PwdSecretKey.Password; PwdSecretKey.Password = "";
                 port = TxtPort.Text;
                 dbUrl = TxtDatabaseUrl.Text;
                 jwtIssuer = TxtJwtIssuer.Text;
@@ -229,9 +251,9 @@ namespace PosBuilder
                                 $"Jwt__Key={secretKey}\n" +
                                 $"Jwt__Issuer={jwtIssuer}\n" +
                                 $"Jwt__Audience={jwtAudience}\n";
-            string envFilePath = Path.Combine(rootDir, "railway.env");
-            File.WriteAllText(envFilePath, envContent);
-            AppendLog($"Archivo de entorno para Railway generado en: {envFilePath}");
+            string envFilePath = Path.Combine(rootDir, "railway.env.example");
+            File.WriteAllText(envFilePath, envContent.Replace(secretKey, "YOUR_SECRET_KEY").Replace(dbUrl, "YOUR_DB_URL"));
+            AppendLog($"Plantilla de entorno para Railway generada en: {envFilePath} (Rellene los secretos manualmente)");
 
             // Generate tenant SQL seed
             string tenantSql = $@"-- Initial users for {storeName} ({tenantId})
@@ -258,7 +280,7 @@ ON CONFLICT DO NOTHING;
             var psi = new ProcessStartInfo
             {
                 FileName = "powershell.exe",
-                Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\"",
+                Arguments = $"-ExecutionPolicy RemoteSigned -File \"{scriptPath}\"",
                 WorkingDirectory = Path.GetDirectoryName(scriptPath),
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -296,7 +318,7 @@ ON CONFLICT DO NOTHING;
         private static string EncryptString(string plainText)
         {
             if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
-                return plainText;
+                throw new PlatformNotSupportedException("Encryption is only supported on Windows.");
 
             var plainBytes = Encoding.UTF8.GetBytes(plainText);
             var encryptedBytes = ProtectedData.Protect(plainBytes, null, DataProtectionScope.CurrentUser);

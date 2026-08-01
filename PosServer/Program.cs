@@ -118,7 +118,7 @@ builder.Services.AddRateLimiter(options =>
     options.AddFixedWindowLimiter("LoginPolicy", opt =>
     {
         opt.Window = TimeSpan.FromMinutes(1);
-        opt.PermitLimit = 20; // Increased permit limit for login
+        opt.PermitLimit = 5; // Increased permit limit for login
         opt.QueueLimit = 0;
     });
     options.RejectionStatusCode = 429;
@@ -147,7 +147,7 @@ app.UseExceptionHandler(exceptionHandlerApp =>
         context.Response.ContentType = "application/json";
 
         var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
-        var errorMessage = exceptionHandlerPathFeature?.Error.Message ?? "Error interno del servidor.";
+        var errorMessage = isDevelopment ? (exceptionHandlerPathFeature?.Error.Message ?? "Error interno") : "Error interno del servidor.";
 
         var isDevelopment = builder.Environment.IsDevelopment();
         var stackTrace = isDevelopment ? exceptionHandlerPathFeature?.Error.StackTrace : null;
@@ -193,8 +193,9 @@ using (var scope = app.Services.CreateScope())
         }
         creator.CreateTables();
     }
-    catch
+    catch (Exception ex)
     {
+        Console.WriteLine($"DB Init Error: {ex.Message}");
     }
 
     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" ADD COLUMN IF NOT EXISTS \"PasswordHash\" text DEFAULT '';"); } catch { }

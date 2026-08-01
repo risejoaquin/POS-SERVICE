@@ -198,7 +198,7 @@ public partial class MainViewModel : ObservableObject
         try {
             var color = (Color)ColorConverter.ConvertFromString(Settings.WhiteLabel.PrimaryColor);
             PrimaryColorBrush = new SolidColorBrush(color);
-        } catch {
+        } catch (Exception ex) { Serilog.Log.Error(ex, "Handled exception");
             // fallback if color is invalid
         }
         

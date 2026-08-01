@@ -74,7 +74,7 @@
                         </Grid>
 
                         <TextBlock Text="DATABASE_URL (o ConnectionStrings__DefaultConnection):" Style="{StaticResource LabelStyle}"/>
-                        <TextBox x:Name="TxtDatabaseUrl" Text="Host=my_host;Database=my_db;Username=my_user;Password=my_pw" Height="38" Margin="0,0,0,15" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
+                        <TextBox x:Name="TxtDatabaseUrl" Text="" Height="38" Margin="0,0,0,15" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
 
                         <Grid Margin="0,0,0,15">
                             <Grid.ColumnDefinitions>
@@ -114,11 +114,11 @@
                             
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="Admin Username:" Style="{StaticResource LabelStyle}"/>
-                                <TextBox x:Name="TxtAdminUsername" Text="admin" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
+                                <TextBox x:Name="TxtAdminUsername" Text="" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="Admin PIN:" Style="{StaticResource LabelStyle}"/>
-                                <TextBox x:Name="TxtAdminPin" Text="admin123" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
+                                <TextBox x:Name="TxtAdminPin" Text="" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
                             </StackPanel>
                         </Grid>
                         
@@ -131,11 +131,11 @@
                             
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="Employee Username:" Style="{StaticResource LabelStyle}"/>
-                                <TextBox x:Name="TxtEmployeeUsername" Text="cajero" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
+                                <TextBox x:Name="TxtEmployeeUsername" Text="" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="Employee PIN:" Style="{StaticResource LabelStyle}"/>
-                                <TextBox x:Name="TxtEmployeePin" Text="1234" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
+                                <TextBox x:Name="TxtEmployeePin" Text="" Height="38" Padding="8,0" VerticalContentAlignment="Center" FontSize="14" BorderBrush="#CBD5E1"/>
                             </StackPanel>
                         </Grid>
                     </StackPanel>

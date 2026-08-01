@@ -24,7 +24,7 @@ namespace PosCore.Views
                     PrintersCombo.Items.Add(queue.Name);
                 }
             }
-            catch { }
+            catch (Exception ex) { Serilog.Log.Error(ex, "Ignored exception"); }
             if (PrintersCombo.Items.Count > 0)
             {
                 PrintersCombo.SelectedIndex = 0;
