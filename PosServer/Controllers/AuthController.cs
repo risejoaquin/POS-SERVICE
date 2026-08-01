@@ -38,13 +38,16 @@ public class AuthController : ControllerBase
             // If the user's snippet insists on this, we'll include it.
             // Wait, their snippet used `&& u.Pin == request.Pin`. Our LoginRequest has `Password`.
             
+            if (string.IsNullOrWhiteSpace(request?.Username) || string.IsNullOrWhiteSpace(request?.Password))
+            {
+                return BadRequest(new { Message = "Username y Password son requeridos." });
+            }
             var user = await _dbContext.Users
                 .FirstOrDefaultAsync(u => (tenantId == "" || u.TenantId == tenantId)
                                        && u.Username.ToLower() == request.Username.ToLower() 
-                                       && u.Pin == request.Password 
                                        && u.IsActive);
                         
-            if (user != null)
+            if (user != null && BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
                 var token = GenerateJwtToken(user.Username, user.TenantId);
                 // Return exactly what the user requested: { user.Id, user.Username, user.Role, user.TenantId }

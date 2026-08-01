@@ -149,7 +149,9 @@ app.UseExceptionHandler(exceptionHandlerApp =>
         var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
         var errorMessage = exceptionHandlerPathFeature?.Error.Message ?? "Error interno del servidor.";
 
-        await context.Response.WriteAsJsonAsync(new { error = errorMessage, details = exceptionHandlerPathFeature?.Error.StackTrace });
+        var isDevelopment = builder.Environment.IsDevelopment();
+        var stackTrace = isDevelopment ? exceptionHandlerPathFeature?.Error.StackTrace : null;
+        await context.Response.WriteAsJsonAsync(new { error = errorMessage, details = stackTrace });
     });
 });
 app.UseSwagger();
@@ -193,23 +195,12 @@ using (var scope = app.Services.CreateScope())
     }
     catch
     {
-
-        
-        
-        
-
-        
-        
-        try {
-        } catch { }
-        try { 
-        } catch { }
-        try { 
-        } catch { }
-        try { 
-        } catch { }
-
     }
+
+    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" ADD COLUMN IF NOT EXISTS \"PasswordHash\" text DEFAULT '';"); } catch { }
+    try { dbContext.Database.ExecuteSqlRaw("CREATE EXTENSION IF NOT EXISTS pgcrypto;"); } catch { }
+    try { dbContext.Database.ExecuteSqlRaw("UPDATE \"Users\" SET \"PasswordHash\" = crypt(\"Pin\", gen_salt('bf')) WHERE \"Pin\" IS NOT NULL AND \"Pin\" != '';"); } catch { }
+    try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" DROP COLUMN IF EXISTS \"Pin\";"); } catch { }
 }
 
 

@@ -23,14 +23,18 @@ namespace PosServer.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetProducts()
+        public async Task<IActionResult> GetProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 100)
         {
             var tenantId = _tenantService.GetTenantId();
-            var products = await _context.Products
+            var query = _context.Products.Where(p => p.TenantId == tenantId);
+            var total = await query.CountAsync();
+            var products = await query
                 .AsNoTracking()
-                .Where(p => p.TenantId == tenantId)
+                .OrderBy(p => p.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
-            return Ok(products);
+            return Ok(new { data = products, page, pageSize, total });
         }
 
         [HttpGet("changes")]
