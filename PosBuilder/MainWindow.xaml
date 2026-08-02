@@ -8,9 +8,6 @@
         WindowStartupLocation="CenterScreen" Background="#F8FAFC"
         FontFamily="Segoe UI">
     <Window.Resources>
-        <local:StringToBoolConverter x:Key="StringToBoolConverter" />
-        <local:DbTypeToVisibilityConverter x:Key="DbTypeToVisibilityConverter" />
-        <local:InverseBooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         
         <Style TargetType="Button" x:Key="NavButton">
             <Setter Property="Background" Value="#3B82F6"/>
