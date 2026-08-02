@@ -129,11 +129,60 @@ namespace PosBuilder
 
             if (ok1 && ok2 && ok3)
             {
+                MainOverlay.Show("Compilando cliente POS (PosCore)...");
+                try 
+                {
+                    // Copy appsettings.json to PosCore before compiling
+                    string corePath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "..", "..", "..", "..", "PosCore"));
+                    if (!System.IO.Directory.Exists(corePath)) {
+                        corePath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "..", "PosCore")); // Fallback
+                    }
+                    if (!System.IO.Directory.Exists(corePath)) {
+                        corePath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "PosCore")); // Fallback 2
+                    }
+                    
+                    string logFilePath = System.IO.Path.Combine(outputDir, "build.log");
+                    
+                    if (System.IO.Directory.Exists(corePath)) 
+                    {
+                        System.IO.File.Copy(appSettingsPath, System.IO.Path.Combine(corePath, "appsettings.json"), true);
+                        
+                        var psi = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "dotnet",
+                            Arguments = $"publish \"{corePath}\" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o \"{System.IO.Path.Combine(outputDir, "PosClient")}\"",
+                            UseShellExecute = false,
+                            CreateNoWindow = true,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true
+                        };
+                        using var process = System.Diagnostics.Process.Start(psi);
+                        if (process != null)
+                        {
+                            string output = await process.StandardOutput.ReadToEndAsync();
+                            string error = await process.StandardError.ReadToEndAsync();
+                            await process.WaitForExitAsync();
+                            
+                            await System.IO.File.WriteAllTextAsync(logFilePath, $"=== Salida Estándar ===\n{output}\n=== Salida de Error ===\n{error}");
+                            
+                            if (process.ExitCode != 0)
+                            {
+                                throw new Exception($"El proceso de compilación falló con código {process.ExitCode}. Revisa build.log para más detalles.");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    NotificationService.Instance.ShowError("Error al compilar PosCore: " + ex.Message);
+                }
+                MainOverlay.Hide();
+
                 NotificationService.Instance.ShowSuccess("Archivos generados exitosamente.");
                 string logPath = System.IO.Path.Combine(outputDir, "validation.log");
                 await System.IO.File.WriteAllTextAsync(logPath, $"Configuración validada exitosamente: {DateTime.Now}");
+                string creds = $"Administrador: {config.AdminUser} / {config.AdminPassword}\nEmpleado: {config.EmployeeUser} / {config.EmployeePassword}\n\nEl cliente compilado está en la carpeta Output/PosClient";
 
-                string creds = $"Administrador: {config.AdminUser} / {config.AdminPassword}\nEmpleado: {config.EmployeeUser} / {config.EmployeePassword}";
                 
                 var modal = new SuccessModal(outputDir, creds);
                 modal.Owner = this;

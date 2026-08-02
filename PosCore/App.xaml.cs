@@ -245,7 +245,14 @@ public partial class App : Application
         Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         var sessionManager = ServiceProvider.GetRequiredService<SessionManager>();
+        var appSettings = ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<PosCore.Models.AppSettings>>().Value;
+        sessionManager.CurrentTenantId = appSettings.Tenant.CurrentTenantId;
         bool isLoggedIn = sessionManager.LoadSession();
+        // Fallback to config if session file didn't overwrite it
+        if (string.IsNullOrEmpty(sessionManager.CurrentTenantId))
+        {
+            sessionManager.CurrentTenantId = appSettings.Tenant.CurrentTenantId;
+        }
 
         if (!isLoggedIn)
         {
