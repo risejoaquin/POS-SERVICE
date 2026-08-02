@@ -1,0 +1,21 @@
+<UserControl x:Class="PosBuilder.Views.Step3Security"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="20">
+        <TextBlock Text="Paso 3: Seguridad JWT" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+        
+        <TextBlock Text="JWT Issuer" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <TextBox Text="{Binding JwtIssuer, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
+        
+        <TextBlock Text="JWT Audience" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <TextBox Text="{Binding JwtAudience, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
+        
+        <TextBlock Text="JWT Secret (mínimo 8 caracteres)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <PasswordBox x:Name="JwtSecretBox" PasswordChanged="JwtSecretBox_PasswordChanged" Padding="8" Margin="0,0,0,5" />
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+            <TextBlock Text="Fuerza:" FontSize="12" Foreground="#64748B" Margin="0,0,5,0" VerticalAlignment="Center"/>
+            <ProgressBar x:Name="StrengthMeter" Value="0" Maximum="100" Width="100" Height="8" Foreground="Red" BorderThickness="0" Background="#E2E8F0"/>
+            <TextBlock x:Name="StrengthLabel" Text="Débil" FontSize="12" Foreground="Red" Margin="5,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

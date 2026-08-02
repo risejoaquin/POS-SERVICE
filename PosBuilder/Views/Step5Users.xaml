@@ -1,0 +1,23 @@
+<UserControl x:Class="PosBuilder.Views.Step5Users"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="20">
+        <TextBlock Text="Paso 5: Usuarios Iniciales" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+        
+        <TextBlock Text="Administrador" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" Foreground="#334155"/>
+        
+        <TextBlock Text="Usuario Admin" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <TextBox ToolTip="Nombre de usuario para el administrador del sistema." Text="{Binding AdminUser, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
+        
+        <TextBlock Text="Contraseña Admin" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <TextBox ToolTip="Contraseña inicial para el administrador." Text="{Binding AdminPassword, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,25" />
+        
+        <TextBlock Text="Empleado Básico" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" Foreground="#334155"/>
+        
+        <TextBlock Text="Usuario Empleado" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <TextBox ToolTip="Nombre de usuario para un empleado genérico inicial." Text="{Binding EmployeeUser, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
+        
+        <TextBlock Text="Contraseña Empleado" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <TextBox ToolTip="Contraseña para el empleado inicial." Text="{Binding EmployeePassword, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
+    </StackPanel>
+</UserControl>

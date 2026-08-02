@@ -30,7 +30,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _hardwareErrorMessage = string.Empty;
 
-    private readonly PosDbContext _dbContext;
+    public readonly PosDbContext DbContext;
 
     public static ObservableCollection<ObservableCollection<OrderItem>> SuspendedOrders { get; set; } = new();
 
@@ -47,6 +47,11 @@ public partial class MainViewModel : ObservableObject
     // Propiedades Observables
     [ObservableProperty]
     private ObservableCollection<OrderItem> _cart = new();
+
+    [ObservableProperty]
+    private ObservableCollection<ShortcutConfig> _shortcuts = new();
+
+    private ShortcutManager _shortcutManager;
 
     [ObservableProperty]
     private ObservableCollection<Product> _products = new();
@@ -170,7 +175,10 @@ public partial class MainViewModel : ObservableObject
 
     public MainViewModel(PosDbContext dbContext, IApiService apiService, IOptions<AppSettings> settings, SyncService syncService, TicketPrinterService ticketPrinterService, PosCore.Services.SessionManager sessionManager)
     {
-        _dbContext = dbContext;
+        _shortcutManager = new ShortcutManager();
+        Shortcuts = new ObservableCollection<ShortcutConfig>(_shortcutManager.CurrentShortcuts);
+
+        DbContext = dbContext;
         _apiService = apiService;
         _settings = settings.Value;
         _syncService = syncService;
@@ -211,7 +219,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadProductsAsync()
     {
-        var query = _dbContext.Products.AsQueryable();
+        var query = DbContext.Products.AsQueryable();
         
         if (!string.IsNullOrWhiteSpace(SearchQuery))
         {
@@ -219,7 +227,7 @@ public partial class MainViewModel : ObservableObject
             query = query.Where(p => p.Name.ToLower().Contains(lowerQuery) || p.Barcode.ToLower().Contains(lowerQuery));
         }
 
-        var allProducts = await _dbContext.Products.ToListAsync();
+        var allProducts = await DbContext.Products.ToListAsync();
         
         // Populate Categories uniquely
         var cats = allProducts.Select(p => p.Category).Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
@@ -392,7 +400,7 @@ public partial class MainViewModel : ObservableObject
     {
         if (!Cart.Any()) return;
         
-        var activeShift = await _dbContext.CashRegisterShifts.FirstOrDefaultAsync(s => !s.IsClosed);
+        var activeShift = await DbContext.CashRegisterShifts.FirstOrDefaultAsync(s => !s.IsClosed);
         if (activeShift == null)
         {
             _ = ShowNotification("No hay un turno abierto. Por favor, abra un turno.", true);
@@ -408,14 +416,24 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
+            if (System.Windows.Application.Current.MainWindow is PosCore.Views.MainWindow mainWindow)
+            {
+                mainWindow.ShowLoading("Procesando pago y sincronizando con el servidor...");
+            }
+            
+            // Simular sincronización
+            await Task.Delay(1500);
+
             // Validar stock antes de continuar
             foreach (var item in Cart)
             {
-                var product = await _dbContext.Products.FindAsync(item.ProductId);
+                var product = await DbContext.Products.FindAsync(item.ProductId);
                 if (product != null)
                 {
                     if (product.StockQuantity < item.Quantity)
                     {
+                        if (System.Windows.Application.Current.MainWindow is PosCore.Views.MainWindow mainWnd)
+                            mainWnd.HideLoading();
                         _ = ShowNotification($"Stock insuficiente para {product.Name}.", true);
                         return; // Cancela el proceso
                     }
@@ -430,7 +448,6 @@ public partial class MainViewModel : ObservableObject
             decimal taxRate = Settings.Tax?.DefaultTaxRate ?? 0.16m;
             decimal subtotal = Total / (1 + taxRate);
             decimal taxes = Total - subtotal;
-
             
             var order = new Order
             {
@@ -443,26 +460,25 @@ public partial class MainViewModel : ObservableObject
                 IsReturned = false,
                 PaymentDetails = paymentDetailsStr
             };
-
             
-            _dbContext.Orders.Add(order);
+            DbContext.Orders.Add(order);
             
-            var jsonOptions = new JsonSerializerOptions { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles };
-            var payload = JsonSerializer.Serialize(order, jsonOptions);
-            _dbContext.OutboxMessages.Add(new OutboxMessage
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions { ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles };
+            var payload = System.Text.Json.JsonSerializer.Serialize(order, jsonOptions);
+            DbContext.OutboxMessages.Add(new OutboxMessage
             {
                 EventType = "OrderCreated",
                 Payload = payload,
                 CreatedAt = System.DateTime.Now
             });
-
-                        int retries = 3;
+            
+            int retries = 3;
             bool saveSuccess = false;
             while (retries > 0 && !saveSuccess)
             {
                 try
                 {
-                    await _dbContext.SaveChangesAsync();
+                    await DbContext.SaveChangesAsync();
                     saveSuccess = true;
                 }
                 catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
@@ -482,17 +498,24 @@ public partial class MainViewModel : ObservableObject
             
             _ticketPrinterService.PrintTicket(order);
             
-
             CustomerName = string.Empty;
             Cart.Clear();
-
             UpdateTotal();
+            
+            if (System.Windows.Application.Current.MainWindow is PosCore.Views.MainWindow mainWin)
+            {
+                mainWin.HideLoading();
+            }
             _ = ShowNotification("Venta completada exitosamente.", false);
             
             LoadProductsCommand.Execute(null);
         }
         catch (System.Exception ex)
         {
+            if (System.Windows.Application.Current.MainWindow is PosCore.Views.MainWindow mainWindowError)
+            {
+                mainWindowError.HideLoading();
+            }
             _ = ShowNotification($"Error: {ex.Message}", true);
         }
     }
@@ -565,7 +588,7 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    private void UpdateTotal()
+    public void UpdateTotal()
     {
         SubTotal = Cart.Sum(i => i.SubTotal);
         // Simulate auto discount evaluation (e.g. 10% off for combo if more than 2 items)
@@ -581,4 +604,42 @@ public partial class MainViewModel : ObservableObject
         }
         Total = SubTotal - DiscountAmount;
     }
+
+    [RelayCommand]
+    public void ExecuteShortcut(string actionName)
+    {
+        if (string.IsNullOrEmpty(actionName)) return;
+        
+        switch (actionName)
+        {
+            case "OpenShift": OpenShiftCommand.Execute(null); break;
+            case "OpenReturns": OpenReturnsCommand.Execute(null); break;
+            case "OpenReports": if (IsAdmin) OpenReportsCommand.Execute(null); break;
+            case "OpenUsers": if (IsAdmin) OpenUsersCommand.Execute(null); break;
+            case "OpenInventory": if (IsAdmin) OpenInventoryCommand.Execute(null); break;
+            case "SuspendOrder": SuspendOrderCommand.Execute(null); break;
+            case "ResumeOrder": ResumeOrderCommand.Execute(null); break;
+            case "TechSupport": OpenLogsCommand.Execute(null); break;
+            case "OpenSettings": OpenSettingsCommand.Execute(null); break;
+            case "OpenDiscount": ApplyDiscountCommand.Execute(null); break;
+            default:
+                System.Windows.MessageBox.Show($"Acción '{actionName}' no implementada aún.", "Info", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                break;
+        }
+    }
+
+    [RelayCommand]
+    public void OpenSettings()
+    {
+        var settingsWindow = new PosCore.Views.SettingsWindow(_shortcutManager);
+        if (settingsWindow.ShowDialog() == true)
+        {
+            Shortcuts.Clear();
+            foreach(var s in _shortcutManager.CurrentShortcuts)
+            {
+                Shortcuts.Add(s);
+            }
+        }
+    }
+
 }

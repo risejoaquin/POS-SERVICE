@@ -41,4 +41,7 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Resource Include="Fonts\**\*.ttf" />
+  </ItemGroup>
 </Project>

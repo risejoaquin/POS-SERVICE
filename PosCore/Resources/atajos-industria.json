@@ -1,0 +1,44 @@
+[
+  {
+    "IndustryName": "Abarrotes",
+    "Shortcuts": [
+      { "Name": "Promoción", "Description": "Aplicar promoción", "Icon": "🏷️", "Action": "OpenDiscount", "Color": "#10B981" },
+      { "Name": "Cliente Frecuente", "Description": "Buscar cliente", "Icon": "⭐", "Action": "OpenCustomer", "Color": "#F59E0B" },
+      { "Name": "Vale/Crédito", "Description": "Pagar con vale", "Icon": "💳", "Action": "OpenCredit", "Color": "#3B82F6" },
+      { "Name": "Devolver", "Description": "Devolución", "Icon": "↩️", "Action": "OpenReturns", "Color": "#EF4444" },
+      { "Name": "Supervisor", "Description": "Override", "Icon": "🔑", "Action": "OpenOverride", "Color": "#6B7280" },
+      { "Name": "Cambio", "Description": "Fondo de caja", "Icon": "💵", "Action": "OpenShift", "Color": "#10B981" },
+      { "Name": "Nota", "Description": "Agregar nota", "Icon": "📝", "Action": "OpenNote", "Color": "#3B82F6" },
+      { "Name": "Historial", "Description": "Ver ventas", "Icon": "🕒", "Action": "OpenHistory", "Color": "#6B7280" },
+      { "Name": "Inventario", "Description": "Ver inventario", "Icon": "📦", "Action": "OpenInventory", "Color": "#8B5CF6" }
+    ]
+  },
+  {
+    "IndustryName": "Restaurante",
+    "Shortcuts": [
+      { "Name": "Combo Oferta", "Description": "Aplicar combo", "Icon": "🍔", "Action": "OpenCombo", "Color": "#F59E0B" },
+      { "Name": "Modificadores", "Description": "Extras/Sin", "Icon": "⚙️", "Action": "OpenModifiers", "Color": "#3B82F6" },
+      { "Name": "Llevar/Consumir", "Description": "Tipo pedido", "Icon": "🛍️", "Action": "ToggleOrderType", "Color": "#10B981" },
+      { "Name": "Mesero", "Description": "Asignar mesero", "Icon": "👨‍🍳", "Action": "AssignWaiter", "Color": "#8B5CF6" },
+      { "Name": "Propina", "Description": "Agregar propina", "Icon": "💰", "Action": "AddTip", "Color": "#10B981" },
+      { "Name": "Pedido Pendiente", "Description": "Pausar", "Icon": "⏸", "Action": "SuspendOrder", "Color": "#F59E0B" },
+      { "Name": "Delivery", "Description": "Para envío", "Icon": "🛵", "Action": "SetDelivery", "Color": "#EF4444" },
+      { "Name": "Mesa", "Description": "Asignar mesa", "Icon": "🍽️", "Action": "AssignTable", "Color": "#3B82F6" },
+      { "Name": "Anular", "Description": "Cancelar orden", "Icon": "❌", "Action": "CancelOrder", "Color": "#EF4444" }
+    ]
+  },
+  {
+    "IndustryName": "Farmacia",
+    "Shortcuts": [
+      { "Name": "Receta Médica", "Description": "Escanear receta", "Icon": "📄", "Action": "ScanPrescription", "Color": "#10B981" },
+      { "Name": "Venta Controlada", "Description": "Medicamento controlado", "Icon": "🔒", "Action": "ControlledSale", "Color": "#EF4444" },
+      { "Name": "Info Medicamento", "Description": "Consultar Vademecum", "Icon": "ℹ️", "Action": "DrugInfo", "Color": "#3B82F6" },
+      { "Name": "Cliente Alérgico", "Description": "Ver alertas", "Icon": "⚠️", "Action": "AllergyAlerts", "Color": "#F59E0B" },
+      { "Name": "Seguro Médico", "Description": "Aplicar seguro", "Icon": "🏥", "Action": "ApplyInsurance", "Color": "#10B981" },
+      { "Name": "Vacunas", "Description": "Registro vacuna", "Icon": "💉", "Action": "VaccineRegister", "Color": "#8B5CF6" },
+      { "Name": "Descuento Adulto", "Description": "INAPAM", "Icon": "👵", "Action": "SeniorDiscount", "Color": "#F59E0B" },
+      { "Name": "Servicio Técnico", "Description": "Soporte", "Icon": "🛠", "Action": "TechSupport", "Color": "#6B7280" },
+      { "Name": "Historial Médico", "Description": "Ver perfil", "Icon": "📋", "Action": "MedicalHistory", "Color": "#3B82F6" }
+    ]
+  }
+]

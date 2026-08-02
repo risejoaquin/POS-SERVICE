@@ -1,0 +1,17 @@
+<UserControl x:Class="PosBuilder.Views.Step4Branding"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:PosBuilder.Views.Controls">
+    <StackPanel Margin="20">
+        <TextBlock Text="Paso 4: Branding" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+        
+        <TextBlock Text="Nombre del POS" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <TextBox ToolTip="Nombre de la marca o empresa que aparecerá en el POS." Text="{Binding BrandingName, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
+        
+        <TextBlock Text="Color Principal (Hex)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <controls:ColorPickerControl ToolTip="Color principal que dominará la interfaz del POS." SelectedColor="{Binding BrandingColor, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15" />
+        
+        <TextBlock Text="Logo (Drag &amp; Drop)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <controls:FileBrowserControl ToolTip="Logotipo de la empresa (PNG o JPG recomendado)." FilePath="{Binding BrandingLogoPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15" />
+    </StackPanel>
+</UserControl>

@@ -118,7 +118,7 @@ builder.Services.AddRateLimiter(options =>
     options.AddFixedWindowLimiter("LoginPolicy", opt =>
     {
         opt.Window = TimeSpan.FromMinutes(1);
-        opt.PermitLimit = 5; // Increased permit limit for login
+        opt.PermitLimit = 3; // FIX: Security hardening - reduced from 5 to 3 attempts per minute
         opt.QueueLimit = 0;
     });
     options.RejectionStatusCode = 429;
@@ -139,6 +139,10 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 app.UseCors("AllowAll");
 app.UseRateLimiter();
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
 app.UseExceptionHandler(exceptionHandlerApp =>
 {
     exceptionHandlerApp.Run(async context =>
@@ -147,9 +151,8 @@ app.UseExceptionHandler(exceptionHandlerApp =>
         context.Response.ContentType = "application/json";
 
         var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
-        var errorMessage = isDevelopment ? (exceptionHandlerPathFeature?.Error.Message ?? "Error interno") : "Error interno del servidor.";
-
         var isDevelopment = builder.Environment.IsDevelopment();
+        var errorMessage = isDevelopment ? (exceptionHandlerPathFeature?.Error.Message ?? "Error interno") : "Error interno del servidor.";
         var stackTrace = isDevelopment ? exceptionHandlerPathFeature?.Error.StackTrace : null;
         await context.Response.WriteAsJsonAsync(new { error = errorMessage, details = stackTrace });
     });

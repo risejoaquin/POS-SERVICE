@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore;
 using PosServer.Models;
@@ -54,10 +57,11 @@ public class CentralDbContext : DbContext
             v => JsonSerializer.Deserialize<Dictionary<string, object>>(v, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? new Dictionary<string, object>()
         );
         var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        // Optimización de rendimiento: precalcular hashes de diccionarios serializados usando SHA256 para evitar evaluación O(n^2)
         var dictComparer = new ValueComparer<Dictionary<string, object>>(
-            (c1, c2) => c1 != null && c2 != null && c1.SequenceEqual(c2),
-            c => c == null ? 0 : c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value?.GetHashCode())),
-            c => c == null ? new Dictionary<string, object>() : c.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+            (c1, c2) => DictionaryHashCache.GetHash(c1) == DictionaryHashCache.GetHash(c2),
+            c => DictionaryHashCache.GetHash(c).GetHashCode(),
+            c => c == null ? new Dictionary<string, object>() : JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(c, jsonOptions), jsonOptions)!
         );
 
         modelBuilder.Entity<User>()
@@ -127,5 +131,29 @@ public class CentralDbContext : DbContext
         modelBuilder.Entity<ProductModifierLink>(entity => {
             entity.HasQueryFilter(e => e.TenantId == CurrentTenantId);
         });
+    }
+}
+
+public static class DictionaryHashCache
+{
+    private static readonly ConcurrentDictionary<string, string> _hashCache = new ConcurrentDictionary<string, string>();
+    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+    public static string GetHash(Dictionary<string, object>? dict)
+    {
+        if (dict == null || dict.Count == 0) return string.Empty;
+        
+        // Serializamos para obtener una representación canónica
+        string json = JsonSerializer.Serialize(dict, _jsonOptions);
+        
+        // Usamos cache para no recalcular el SHA256 de un mismo JSON
+        return _hashCache.GetOrAdd(json, ComputeSha256);
+    }
+
+    private static string ComputeSha256(string input)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+        return Convert.ToBase64String(bytes);
     }
 }
