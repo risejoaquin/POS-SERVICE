@@ -133,8 +133,7 @@ namespace PosBuilder
                 string logPath = System.IO.Path.Combine(outputDir, "validation.log");
                 await System.IO.File.WriteAllTextAsync(logPath, $"Configuración validada exitosamente: {DateTime.Now}");
 
-                string creds = $"Administrador: {config.AdminUser} / {config.AdminPassword}
-Empleado: {config.EmployeeUser} / {config.EmployeePassword}";
+                string creds = $"Administrador: {config.AdminUser} / {config.AdminPassword}\nEmpleado: {config.EmployeeUser} / {config.EmployeePassword}";
                 
                 var modal = new SuccessModal(outputDir, creds);
                 modal.Owner = this;
@@ -146,39 +145,9 @@ Empleado: {config.EmployeeUser} / {config.EmployeePassword}";
             {
                 NotificationService.Instance.ShowError("Error de integridad al generar los archivos.");
             }
-        };
-
-            var generator = new ConfigurationGenerator();
-            
-            string outputDir = System.IO.Path.Combine(System.Environment.CurrentDirectory, "Output");
-            
-            string appSettingsPath = System.IO.Path.Combine(outputDir, "appsettings.json");
-            string envPath = System.IO.Path.Combine(outputDir, "railway.env.example");
-            string sqlPath = System.IO.Path.Combine(outputDir, "init.sql");
-
-            bool ok1 = await generator.WriteWithIntegrityValidationAsync(appSettingsPath, generator.GenerateAppSettings(config));
-            bool ok2 = await generator.WriteWithIntegrityValidationAsync(envPath, generator.GenerateEnvFile(config));
-            bool ok3 = await generator.WriteWithIntegrityValidationAsync(sqlPath, generator.GenerateSqlScript(config));
-
-            if (ok1 && ok2 && ok3)
-            {
-                string logPath = System.IO.Path.Combine(outputDir, "validation.log");
-                await System.IO.File.WriteAllTextAsync(logPath, $"Configuración validada exitosamente: {DateTime.Now}");
-
-                string creds = $"Administrador: {config.AdminUser} / {config.AdminPassword}
-Empleado: {config.EmployeeUser} / {config.EmployeePassword}";
-                
-                var modal = new SuccessModal(outputDir, creds);
-                modal.Owner = this;
-                modal.ShowDialog();
-                
-                Close();
-            }
-            else
-            {
-                MessageBox.Show("Hubo un error de integridad al generar los archivos. Por favor, intente de nuevo.", "Error de Validación", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
         }
+
+
     }
 
     public class StepIndicator : System.ComponentModel.INotifyPropertyChanged
