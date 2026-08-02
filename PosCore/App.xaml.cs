@@ -147,6 +147,15 @@ public partial class App : Application
         using (var scope = ServiceProvider.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<PosDbContext>();
+            
+            // Check if Products table exists, if not, the database is outdated and we should delete it
+            try {
+                dbContext.Database.ExecuteSqlRaw("SELECT 1 FROM Products LIMIT 1;");
+            } catch {
+                Serilog.Log.Warning("Products table not found, deleting and recreating database...");
+                dbContext.Database.EnsureDeleted();
+            }
+            
             dbContext.Database.EnsureCreated();
             dbContext.InitializeDatabaseSettings();
             var connStr = secureSettings.DatabaseSettings.ConnectionString;

@@ -18,6 +18,10 @@ namespace PosBuilder
                 {
                     BaseUrl = model.ApiBaseUrl
                 },
+                DatabaseSettings = new
+                {
+                    ConnectionString = "Data Source=pos_local.db;Default Timeout=30;"
+                },
                 WhiteLabel = new
                 {
                     CompanyName = model.CompanyName,

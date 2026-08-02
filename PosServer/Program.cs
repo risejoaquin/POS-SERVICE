@@ -56,11 +56,19 @@ if ((connString.Contains("supabase.com") || connString.Contains("pooler")) && bu
     }
 }
 
-builder.Services.AddDbContext<CentralDbContext>(options =>
-    options.UseNpgsql(connString, o => {
-        o.CommandTimeout(120);
-        o.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null);
-    }));
+builder.Services.AddDbContext<CentralDbContext>(options => {
+    if (connString.Contains("sqlite") || connString.Contains("Sqlite") || connString.Contains("Data Source=") && !connString.Contains("Host="))
+    {
+        options.UseSqlite(connString);
+    }
+    else
+    {
+        options.UseNpgsql(connString, o => {
+            o.CommandTimeout(120);
+            o.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null);
+        });
+    }
+});
 
 // Configure JWT Authentication
 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? builder.Configuration["Jwt:Key"] ?? "super_secret_fallback_jwt_key_1234567890";
