@@ -96,6 +96,7 @@ namespace PosBuilder
                 PrimaryColor = _viewModel.BrandingColor,
                 LogoPath = _viewModel.BrandingLogoPath,
                 TenantId = _viewModel.TenantName.Replace(" ", "").ToLower(),
+                BusinessType = _viewModel.BusinessType,
                 DbType = _viewModel.DbType,
                 DbHost = _viewModel.DbHost,
                 DbPort = _viewModel.DbPort,
@@ -139,6 +140,21 @@ namespace PosBuilder
                     }
                     if (!System.IO.Directory.Exists(corePath)) {
                         corePath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "PosCore")); // Fallback 2
+                    }
+
+                    // Setup PosServer AppSettings automatically
+                    string serverPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "..", "..", "..", "..", "PosServer"));
+                    if (!System.IO.Directory.Exists(serverPath)) {
+                        serverPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "..", "PosServer")); // Fallback
+                    }
+                    if (!System.IO.Directory.Exists(serverPath)) {
+                        serverPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "PosServer")); // Fallback 2
+                    }
+                    if (System.IO.Directory.Exists(serverPath)) 
+                    {
+                        string serverAppSettingsJson = generator.GenerateServerAppSettings(config);
+                        System.IO.File.WriteAllText(System.IO.Path.Combine(serverPath, "appsettings.Development.json"), serverAppSettingsJson);
+                        System.IO.File.WriteAllText(System.IO.Path.Combine(serverPath, "appsettings.json"), serverAppSettingsJson);
                     }
                     
                     string logFilePath = System.IO.Path.Combine(outputDir, "build.log");

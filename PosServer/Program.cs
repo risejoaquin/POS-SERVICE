@@ -63,10 +63,9 @@ builder.Services.AddDbContext<CentralDbContext>(options =>
     }));
 
 // Configure JWT Authentication
-var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? builder.Configuration["Jwt:Key"];
-if (string.IsNullOrEmpty(jwtKey)) throw new InvalidOperationException("JWT_KEY no configurada");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
+var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? builder.Configuration["Jwt:Key"] ?? "super_secret_fallback_jwt_key_1234567890";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "PosServer";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "PosClient";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -205,6 +204,68 @@ using (var scope = app.Services.CreateScope())
     try { dbContext.Database.ExecuteSqlRaw("CREATE EXTENSION IF NOT EXISTS pgcrypto;"); } catch { }
     try { dbContext.Database.ExecuteSqlRaw("UPDATE \"Users\" SET \"PasswordHash\" = crypt(\"Pin\", gen_salt('bf')) WHERE \"Pin\" IS NOT NULL AND \"Pin\" != '';"); } catch { }
     try { dbContext.Database.ExecuteSqlRaw("ALTER TABLE \"Users\" DROP COLUMN IF EXISTS \"Pin\";"); } catch { }
+    
+    // Auto-seed users from environment variables if table is empty
+    if (!dbContext.Users.IgnoreQueryFilters().Any())
+    {
+        var adminUser = Environment.GetEnvironmentVariable("ADMIN_USER") ?? builder.Configuration["ADMIN_USER"] ?? "admin";
+        var adminPass = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? builder.Configuration["ADMIN_PASSWORD"] ?? "1234";
+        var empUser = Environment.GetEnvironmentVariable("EMP_USER") ?? builder.Configuration["EMP_USER"] ?? "cajero";
+        var empPass = Environment.GetEnvironmentVariable("EMP_PASSWORD") ?? builder.Configuration["EMP_PASSWORD"] ?? "1111";
+        var tenantId = Environment.GetEnvironmentVariable("TENANT_ID") ?? builder.Configuration["TENANT_ID"] ?? "tenant_001";
+        
+        dbContext.Users.Add(new PosServer.Models.User {
+            Username = adminUser,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPass),
+            Role = "Admin",
+            TenantId = tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        
+        dbContext.Users.Add(new PosServer.Models.User {
+            Username = empUser,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(empPass),
+            Role = "Cajero",
+            TenantId = tenantId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        
+        dbContext.SaveChanges();
+        
+        var businessType = Environment.GetEnvironmentVariable("BUSINESS_TYPE") ?? builder.Configuration["BUSINESS_TYPE"] ?? "Retail";
+        
+        if (!dbContext.Products.IgnoreQueryFilters().Any())
+        {
+            if (businessType == "Retail")
+            {
+                dbContext.Products.AddRange(
+                    new PosServer.Models.Product { Name = "Coca Cola 600ml", Barcode = "7501055300075", Price = 18.00m, StockQuantity = 50, Category = "Bebidas", TenantId = tenantId },
+                    new PosServer.Models.Product { Name = "Sabritas Sal 40g", Barcode = "7501011111111", Price = 15.00m, StockQuantity = 30, Category = "Botanas", TenantId = tenantId },
+                    new PosServer.Models.Product { Name = "Camiseta Básica", Barcode = "CLO-001", Price = 150.00m, StockQuantity = 20, Category = "Ropa", TenantId = tenantId, CustomAttributes = new Dictionary<string, object> { { "talla", "M" }, { "color", "Blanco" } } }
+                );
+            }
+            else if (businessType == "Hospitality")
+            {
+                dbContext.Products.AddRange(
+                    new PosServer.Models.Product { Name = "Hamburguesa Clásica", Barcode = "FOOD-001", Price = 120.00m, StockQuantity = 100, Category = "Comida", TenantId = tenantId, CustomAttributes = new Dictionary<string, object> { { "preparacion", "cocina" }, { "modificadores", new[] { "sin_cebolla", "extra_queso" } } } },
+                    new PosServer.Models.Product { Name = "Cerveza Artesanal", Barcode = "BEV-001", Price = 65.00m, StockQuantity = 80, Category = "Bebidas", TenantId = tenantId, CustomAttributes = new Dictionary<string, object> { { "preparacion", "barra" } } },
+                    new PosServer.Models.Product { Name = "Pastel de Chocolate", Barcode = "DES-001", Price = 55.00m, StockQuantity = 15, Category = "Postres", TenantId = tenantId }
+                );
+            }
+            else if (businessType == "Services")
+            {
+                dbContext.Products.AddRange(
+                    new PosServer.Models.Product { Name = "Corte de Cabello", Barcode = "SRV-001", Price = 200.00m, StockQuantity = 999, Category = "Estética", TenantId = tenantId, CustomAttributes = new Dictionary<string, object> { { "duracion_minutos", 45 }, { "requiere_cita", true } } },
+                    new PosServer.Models.Product { Name = "Membresía Mensual Gym", Barcode = "SRV-002", Price = 500.00m, StockQuantity = 999, Category = "Gimnasio", TenantId = tenantId, CustomAttributes = new Dictionary<string, object> { { "tipo_membresia", "Mensual" }, { "acceso_24_7", true } } },
+                    new PosServer.Models.Product { Name = "Lavado de Auto", Barcode = "SRV-003", Price = 150.00m, StockQuantity = 999, Category = "Autolavado", TenantId = tenantId, CustomAttributes = new Dictionary<string, object> { { "duracion_minutos", 60 } } }
+                );
+            }
+            
+            dbContext.SaveChanges();
+        }
+    }
 }
 
 

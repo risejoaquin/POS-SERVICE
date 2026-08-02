@@ -15,6 +15,13 @@
             <ComboBoxItem Content="Tienda Norte"/>
         </ComboBox>
         
+        <TextBlock Text="Tipo de Negocio" FontWeight="SemiBold" Margin="0,0,0,5"/>
+        <ComboBox ToolTip="Selecciona el tipo de negocio para generar la base de datos adecuada." Text="{Binding BusinessType, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" FontSize="14">
+            <ComboBoxItem Content="Retail"/>
+            <ComboBoxItem Content="Hospitality"/>
+            <ComboBoxItem Content="Services"/>
+        </ComboBox>
+
         <TextBlock Text="Entorno" FontWeight="SemiBold" Margin="0,0,0,5"/>
         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
             <RadioButton Content="Development" IsChecked="{Binding Environment, Converter={StaticResource StringToBoolConverter}, ConverterParameter=Development}" Margin="0,0,15,0"/>

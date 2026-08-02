@@ -18,6 +18,9 @@ namespace PosBuilder.ViewModels
         private string _tenantName = "Mi Tienda";
 
         [ObservableProperty]
+        private string _businessType = "Retail";
+
+        [ObservableProperty]
         private string _environment = "Development";
 
         [ObservableProperty]

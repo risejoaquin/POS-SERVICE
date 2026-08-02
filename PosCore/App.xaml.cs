@@ -24,13 +24,10 @@ public partial class App : Application
     {
         QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
     }
-    private async Task CheckForUpdatesAsync()
+    private async Task CheckForUpdatesAsync(string baseApiUrl)
     {
         try
         {
-            string configPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
-            var tempSettings = PosCore.Services.SecureConfigManager.LoadAndSecureConfig(configPath);
-            var baseApiUrl = tempSettings.ApiSettings.BaseUrl.TrimEnd('/');
             var updateUrl = Environment.GetEnvironmentVariable("POS_UPDATE_URL") ?? $"{baseApiUrl}/releases";
             using (var mgr = new UpdateManager(updateUrl))
             {
@@ -87,8 +84,6 @@ public partial class App : Application
                     );
             }
             
-            // 2. Comprobar actualizaciones en segundo plano
-            _ = Task.Run(async () => await CheckForUpdatesAsync());
         } 
         catch 
         {
@@ -260,6 +255,9 @@ public partial class App : Application
             isLoggedIn = loginWindow.ShowDialog() == true;
         }
 
+        // Check for updates
+        _ = Task.Run(async () => await CheckForUpdatesAsync(secureSettings.ApiSettings.BaseUrl.TrimEnd('/')));
+        
         if (isLoggedIn)
         {
             var licenseService = ServiceProvider.GetRequiredService<LicenseService>();

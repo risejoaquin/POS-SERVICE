@@ -49,11 +49,43 @@ namespace PosBuilder
             sb.AppendLine($"DB_USER={model.DbUser}");
             sb.AppendLine($"DB_PASSWORD={model.DbPassword}");
             sb.AppendLine($"DB_NAME={model.DbName}");
-            sb.AppendLine($"JWT_SECRET={model.JwtSecret}");
+            sb.AppendLine($"JWT_KEY={model.JwtSecret}");
+            sb.AppendLine($"ADMIN_USER={model.AdminUser}");
+            sb.AppendLine($"ADMIN_PASSWORD={model.AdminPassword}");
+            sb.AppendLine($"EMP_USER={model.EmployeeUser}");
+            sb.AppendLine($"EMP_PASSWORD={model.EmployeePassword}");
+            sb.AppendLine($"TENANT_ID={model.TenantId}");
+            sb.AppendLine($"BUSINESS_TYPE={model.BusinessType}");
             
             return sb.ToString();
         }
 
+
+        public string GenerateServerAppSettings(ConfigModel model)
+        {
+            string connString = "";
+            if (model.DbType.ToLower().Contains("sqlite")) {
+                connString = "Data Source=posdb.sqlite";
+            } else {
+                connString = $"Host={model.DbHost};Port={model.DbPort};Database={model.DbName};Username={model.DbUser};Password={model.DbPassword};SSL Mode=Require;Trust Server Certificate=True";
+            }
+            
+            var config = new
+            {
+                Logging = new { LogLevel = new { Default = "Information", Microsoft_AspNetCore = "Warning" } },
+                AllowedHosts = "*",
+                ConnectionStrings = new { DefaultConnection = connString },
+                Jwt = new { Key = model.JwtSecret, Issuer = "PosServer", Audience = "PosClient" },
+                ADMIN_USER = model.AdminUser,
+                ADMIN_PASSWORD = model.AdminPassword,
+                EMP_USER = model.EmployeeUser,
+                EMP_PASSWORD = model.EmployeePassword,
+                TENANT_ID = model.TenantId,
+                BUSINESS_TYPE = model.BusinessType
+            };
+            
+            return System.Text.Json.JsonSerializer.Serialize(config, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }).Replace("Microsoft_AspNetCore", "Microsoft.AspNetCore");
+        }
         public string GenerateSqlScript(ConfigModel model)
         {
             return SqlGenerator.GenerateTenantSql(

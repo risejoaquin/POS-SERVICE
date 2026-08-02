@@ -7,6 +7,7 @@ namespace PosBuilder.Models
         public string PrimaryColor { get; set; } = "";
         public string LogoPath { get; set; } = "";
         public string TenantId { get; set; } = "";
+        public string BusinessType { get; set; } = "";
         
         public string DbType { get; set; } = "";
         public string DbHost { get; set; } = "";
