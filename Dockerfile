@@ -1,9 +1,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["PosServer/PosServer.csproj", "PosServer/"]
-RUN dotnet restore "PosServer/PosServer.csproj"
 COPY . .
-WORKDIR "/src/PosServer"
+WORKDIR /src/PosServer
+RUN dotnet restore "PosServer.csproj"
 RUN dotnet build "PosServer.csproj" -c Release -o /app/build
 
 FROM build AS publish
