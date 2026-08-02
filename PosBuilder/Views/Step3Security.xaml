@@ -11,7 +11,11 @@
         <TextBox Text="{Binding JwtAudience, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
         
         <TextBlock Text="JWT Secret (mínimo 8 caracteres)" FontWeight="SemiBold" Margin="0,0,0,5"/>
-        <PasswordBox x:Name="JwtSecretBox" PasswordChanged="JwtSecretBox_PasswordChanged" Padding="8" Margin="0,0,0,5" />
+        <Grid Margin="0,0,0,5">
+            <PasswordBox x:Name="JwtSecretBox" PasswordChanged="JwtSecretBox_PasswordChanged" Padding="8,8,30,8" />
+            <TextBox x:Name="JwtSecretVisibleBox" Text="{Binding JwtSecret, UpdateSourceTrigger=PropertyChanged}" Visibility="Collapsed" Padding="8,8,30,8" TextChanged="JwtSecretVisibleBox_TextChanged" />
+            <ToggleButton x:Name="ToggleJwtVisibility" Content="👁" Width="25" Height="25" HorizontalAlignment="Right" Margin="0,0,5,0" Background="Transparent" BorderThickness="0" Click="ToggleJwtVisibility_Click" />
+        </Grid>
         <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
             <TextBlock Text="Fuerza:" FontSize="12" Foreground="#64748B" Margin="0,0,5,0" VerticalAlignment="Center"/>
             <ProgressBar x:Name="StrengthMeter" Value="0" Maximum="100" Width="100" Height="8" Foreground="Red" BorderThickness="0" Background="#E2E8F0"/>

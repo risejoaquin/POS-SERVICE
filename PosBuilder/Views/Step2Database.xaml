@@ -26,7 +26,7 @@
             <TextBlock Text="Nombre DB" FontWeight="SemiBold" Margin="0,0,0,5"/>
             <TextBox ToolTip="Nombre de la base de datos a crear o usar." Text="{Binding DbName, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
             
-            <Button Content="Test Connection" Command="{Binding TestConnectionCommand}" Padding="10" Background="#3B82F6" Foreground="White" BorderThickness="0" Cursor="Hand"/>
+            <Button Content="{Binding TestDbButtonText, FallbackValue='Test Connection'}" Command="{Binding TestConnectionCommand}" Padding="10" Background="#3B82F6" Foreground="White" BorderThickness="0" Cursor="Hand"/>
 
         </StackPanel>
     </StackPanel>

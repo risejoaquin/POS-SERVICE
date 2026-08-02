@@ -1,12 +1,16 @@
-<UserControl x:Class="PosBuilder.Views.Step7Summary"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <StackPanel Margin="20">
-        <TextBlock Text="Paso 7: Resumen y Generación" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
-        
-        <TextBlock Text="Revisa la información antes de generar el paquete POS." FontSize="14" Margin="0,0,0,15"/>
-        
-        <Border Background="#F1F5F9" CornerRadius="8" Padding="20" Margin="0,0,0,20">
+import re
+with open("PosBuilder/Views/Step7Summary.xaml", "r", encoding="utf-8") as f:
+    content = f.read()
+
+old_border = """        <Border Background="#F1F5F9" CornerRadius="8" Padding="15" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock Text="{Binding TenantName, StringFormat='Comercio: {0}'}" FontSize="16" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding Environment, StringFormat='Entorno: {0}'}" FontSize="14"/>
+                <TextBlock Text="{Binding DbType, StringFormat='Base de Datos: {0}'}" FontSize="14"/>
+            </StackPanel>
+        </Border>"""
+
+new_border = """        <Border Background="#F1F5F9" CornerRadius="8" Padding="20" Margin="0,0,0,20">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -27,6 +31,9 @@
                 </StackPanel>
             </Grid>
         </Border>
+"""
 
-    </StackPanel>
-</UserControl>
+content = content.replace(old_border, new_border)
+with open("PosBuilder/Views/Step7Summary.xaml", "w", encoding="utf-8") as f:
+    f.write(content)
+print("Replaced Step7Summary xaml")

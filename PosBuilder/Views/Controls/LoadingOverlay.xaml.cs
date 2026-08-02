@@ -1,4 +1,4 @@
-using System.Windows;
+using System;\nusing System.Windows;
 using System.Windows.Controls;
 
 namespace PosBuilder.Views.Controls
@@ -31,11 +31,37 @@ namespace PosBuilder.Views.Controls
         {
             Message = message;
             Visibility = Visibility.Visible;
+            LogContainer.Visibility = Visibility.Collapsed;
         }
 
         public void Hide()
         {
             Visibility = Visibility.Collapsed;
+            LogTextBox.Text = "";
+        }
+
+        public void ShowLog()
+        {
+            LogContainer.Visibility = Visibility.Visible;
+            LogTextBox.Text = "";
+        }
+
+        public void AppendLog(string text)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                LogTextBox.AppendText(text + Environment.NewLine);
+                LogScroller.ScrollToEnd();
+            });
+        }
+        
+        private void CopyLogs_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrWhiteSpace(LogTextBox.Text))
+            {
+                Clipboard.SetText(LogTextBox.Text);
+                MessageBox.Show("Logs copiados al portapapeles.", "Copiar", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
     }
 }

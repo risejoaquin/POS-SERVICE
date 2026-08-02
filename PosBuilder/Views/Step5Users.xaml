@@ -10,7 +10,8 @@
         <TextBox ToolTip="Nombre de usuario para el administrador del sistema." Text="{Binding AdminUser, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
         
         <TextBlock Text="Contraseña Admin" FontWeight="SemiBold" Margin="0,0,0,5"/>
-        <TextBox ToolTip="Contraseña inicial para el administrador." Text="{Binding AdminPassword, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,25" />
+        <PasswordBox x:Name="AdminPassBox" PasswordChanged="AdminPassBox_PasswordChanged" Padding="8" Margin="0,0,0,5" />
+        <TextBlock x:Name="AdminPassWarning" Text="Mínimo 6 caracteres recomendados" FontSize="11" Foreground="Orange" Visibility="Collapsed" Margin="0,0,0,20"/>
         
         <TextBlock Text="Empleado Básico" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" Foreground="#334155"/>
         
@@ -18,6 +19,7 @@
         <TextBox ToolTip="Nombre de usuario para un empleado genérico inicial." Text="{Binding EmployeeUser, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
         
         <TextBlock Text="Contraseña Empleado" FontWeight="SemiBold" Margin="0,0,0,5"/>
-        <TextBox ToolTip="Contraseña para el empleado inicial." Text="{Binding EmployeePassword, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,0,0,15" />
+        <PasswordBox x:Name="EmpPassBox" PasswordChanged="EmpPassBox_PasswordChanged" Padding="8" Margin="0,0,0,5" />
+        <TextBlock x:Name="EmpPassWarning" Text="Mínimo 6 caracteres recomendados" FontSize="11" Foreground="Orange" Visibility="Collapsed" Margin="0,0,0,10"/>
     </StackPanel>
 </UserControl>

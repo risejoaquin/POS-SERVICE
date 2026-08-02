@@ -1,13 +1,8 @@
-using System.Windows.Controls;
+import re
+with open("PosBuilder/Views/Step5Users.xaml.cs", "r", encoding="utf-8") as f:
+    content = f.read()
 
-namespace PosBuilder.Views
-{
-    public partial class Step5Users : UserControl
-    {
-        public Step5Users()
-        {
-            InitializeComponent();
-        }
+new_methods = """
         private void AdminPassBox_PasswordChanged(object sender, System.Windows.RoutedEventArgs e)
         {
             if (DataContext is PosBuilder.ViewModels.WizardViewModel vm)
@@ -31,6 +26,25 @@ namespace PosBuilder.Views
             else
                 EmpPassWarning.Visibility = System.Windows.Visibility.Collapsed;
         }
+"""
 
-    }
-}
+old_class = """    public partial class Step5Users : UserControl
+    {
+        public Step5Users()
+        {
+            InitializeComponent();
+        }
+    }"""
+
+new_class = """    public partial class Step5Users : UserControl
+    {
+        public Step5Users()
+        {
+            InitializeComponent();
+        }""" + new_methods + """
+    }"""
+
+content = content.replace(old_class, new_class)
+with open("PosBuilder/Views/Step5Users.xaml.cs", "w", encoding="utf-8") as f:
+    f.write(content)
+print("Replaced Step5Users cs")

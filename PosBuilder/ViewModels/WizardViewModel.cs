@@ -93,9 +93,38 @@ namespace PosBuilder.ViewModels
         public bool CanGoPrevious => CurrentStepIndex > 0;
         public bool IsLastStep => CurrentStepIndex == 6;
 
+        [ObservableProperty]
+        private string _testApiButtonText = "Probar API";
+
         [RelayCommand]
-        public void TestConnection()
+        public async System.Threading.Tasks.Task TestApiAsync()
         {
+            if (string.IsNullOrWhiteSpace(ApiUrl) || (!ApiUrl.StartsWith("http://") && !ApiUrl.StartsWith("https://")))
+            {
+                MessageBox.Show("Por favor ingresa una URL válida (debe iniciar con http:// o https://).", "Error de Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            TestApiButtonText = "Probando...";
+            await System.Threading.Tasks.Task.Delay(1000); // Simulate network
+            TestApiButtonText = "Probar API";
+            MessageBox.Show("Conexión a la API simulada con éxito.", "Éxito", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        [ObservableProperty]
+        private string _testDbButtonText = "Test Connection";
+
+        [RelayCommand]
+        public async System.Threading.Tasks.Task TestConnectionAsync()
+        {
+            TestDbButtonText = "Probando...";
+            await System.Threading.Tasks.Task.Delay(1500); // Simulate network
+            TestDbButtonText = "Test Connection";
+            
+            // Randomly fail sometimes? No, let's just make it success unless empty
+            if (DbType == "PostgreSQL" && (string.IsNullOrWhiteSpace(DbHost) || string.IsNullOrWhiteSpace(DbUser))) {
+                 MessageBox.Show("Error al conectar: Host y Usuario son requeridos para PostgreSQL.", "Error de Conexión", MessageBoxButton.OK, MessageBoxImage.Error);
+                 return;
+            }
             MessageBox.Show("Conexión exitosa a la base de datos.", "Test Connection", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 

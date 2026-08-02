@@ -87,7 +87,7 @@ namespace PosBuilder
 
         private async void Generate_Click(object sender, RoutedEventArgs e)
         {
-            MainOverlay.Show("Generando instalador...");
+            MainOverlay.Show("Validando configuración...");
             
             var config = new PosBuilder.Models.ConfigModel
             {
@@ -119,18 +119,20 @@ namespace PosBuilder
             string envPath = System.IO.Path.Combine(outputDir, "railway.env.example");
             string sqlPath = System.IO.Path.Combine(outputDir, "init.sql");
 
-            // Simulate some loading time
-            await Task.Delay(1500);
-
+            await Task.Delay(500);
+            
+            MainOverlay.Show("Generando archivos de configuración (appsettings.json)...");
             bool ok1 = await generator.WriteWithIntegrityValidationAsync(appSettingsPath, generator.GenerateAppSettings(config));
+            
+            await Task.Delay(500);
+            MainOverlay.Show("Generando script de base de datos SQL e Inyección de Dependencias...");
             bool ok2 = await generator.WriteWithIntegrityValidationAsync(envPath, generator.GenerateEnvFile(config));
             bool ok3 = await generator.WriteWithIntegrityValidationAsync(sqlPath, generator.GenerateSqlScript(config));
 
-            MainOverlay.Hide();
-
             if (ok1 && ok2 && ok3)
             {
-                MainOverlay.Show("Compilando cliente POS (PosCore)...");
+                MainOverlay.Show("Compilando binarios de cliente POS (PosCore). Esto puede tomar unos segundos...");
+                MainOverlay.ShowLog();
                 try 
                 {
                     // Copy appsettings.json to PosCore before compiling
@@ -172,19 +174,34 @@ namespace PosBuilder
                             RedirectStandardOutput = true,
                             RedirectStandardError = true
                         };
-                        using var process = System.Diagnostics.Process.Start(psi);
-                        if (process != null)
-                        {
-                            string output = await process.StandardOutput.ReadToEndAsync();
-                            string error = await process.StandardError.ReadToEndAsync();
-                            await process.WaitForExitAsync();
-                            
-                            await System.IO.File.WriteAllTextAsync(logFilePath, $"=== Salida Estándar ===\n{output}\n=== Salida de Error ===\n{error}");
-                            
-                            if (process.ExitCode != 0)
-                            {
-                                throw new Exception($"El proceso de compilación falló con código {process.ExitCode}. Revisa build.log para más detalles.");
+                        using var process = new System.Diagnostics.Process { StartInfo = psi };
+                        var fullOutput = new System.Text.StringBuilder();
+                        var fullError = new System.Text.StringBuilder();
+
+                        process.OutputDataReceived += (s, ev) => {
+                            if (ev.Data != null) {
+                                MainOverlay.AppendLog(ev.Data);
+                                fullOutput.AppendLine(ev.Data);
                             }
+                        };
+                        process.ErrorDataReceived += (s, ev) => {
+                            if (ev.Data != null) {
+                                MainOverlay.AppendLog("ERROR: " + ev.Data);
+                                fullError.AppendLine(ev.Data);
+                            }
+                        };
+
+                        process.Start();
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
+                        
+                        await process.WaitForExitAsync();
+                        
+                        await System.IO.File.WriteAllTextAsync(logFilePath, $"=== Salida Estándar ===\n{fullOutput.ToString()}\n=== Salida de Error ===\n{fullError.ToString()}");
+                        
+                        if (process.ExitCode != 0)
+                        {
+                            throw new Exception($"El proceso de compilación falló con código {process.ExitCode}. Revisa build.log para más detalles.");
                         }
                     }
                 }
@@ -203,6 +220,54 @@ namespace PosBuilder
                 var modal = new SuccessModal(outputDir, creds);
                 modal.Owner = this;
                 modal.ShowDialog();
+                
+                try
+                {
+                    string corePath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "..", "..", "..", "..", "PosCore"));
+                    if (!System.IO.Directory.Exists(corePath)) { corePath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "..", "PosCore")); }
+                    if (!System.IO.Directory.Exists(corePath)) { corePath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "PosCore")); }
+
+                    string serverPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "..", "..", "..", "..", "PosServer"));
+                    if (!System.IO.Directory.Exists(serverPath)) { serverPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "..", "PosServer")); }
+                    if (!System.IO.Directory.Exists(serverPath)) { serverPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.Environment.CurrentDirectory, "PosServer")); }
+
+                    if (System.IO.Directory.Exists(serverPath))
+                    {
+                        var serverProcess = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "dotnet",
+                            Arguments = $"run --project \"{serverPath}\"",
+                            UseShellExecute = true
+                        };
+                        System.Diagnostics.Process.Start(serverProcess);
+                    }
+                    
+                    string clientExe = System.IO.Path.Combine(outputDir, "PosClient", "PosCore.exe");
+                    if (System.IO.File.Exists(clientExe))
+                    {
+                        var clientProcess = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = clientExe,
+                            UseShellExecute = true,
+                            WorkingDirectory = System.IO.Path.Combine(outputDir, "PosClient")
+                        };
+                        System.Diagnostics.Process.Start(clientProcess);
+                    }
+                    else if (System.IO.Directory.Exists(corePath))
+                    {
+                         var clientFallbackProcess = new System.Diagnostics.ProcessStartInfo
+                         {
+                             FileName = "dotnet",
+                             Arguments = $"run --project \"{corePath}\"",
+                             UseShellExecute = true
+                         };
+                         System.Diagnostics.Process.Start(clientFallbackProcess);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show("Error al iniciar las aplicaciones: " + ex.Message, "Ejecución Automática", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                }
                 
                 Close();
             }

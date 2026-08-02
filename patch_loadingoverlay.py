@@ -1,4 +1,7 @@
-<UserControl x:Class="PosBuilder.Views.Controls.LoadingOverlay"
+with open("PosBuilder/Views/Controls/LoadingOverlay.xaml", "r", encoding="utf-8") as f:
+    content = f.read()
+
+new_content = """<UserControl x:Class="PosBuilder.Views.Controls.LoadingOverlay"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -38,4 +41,8 @@
             </Grid>
         </Border>
     </Grid>
-</UserControl>
+</UserControl>"""
+
+with open("PosBuilder/Views/Controls/LoadingOverlay.xaml", "w", encoding="utf-8") as f:
+    f.write(new_content)
+print("Replaced LoadingOverlay xaml")
