@@ -12,36 +12,7 @@
                 <DropShadowEffect Color="Black" Opacity="0.2" BlurRadius="15" ShadowDepth="0"/>
             </Border.Effect>
             <StackPanel>
-                <ProgressBar x:Name="Spinner" IsIndeterminate="True" Width="60" Height="60" Margin="0,0,0,20">
-                    <ProgressBar.Template>
-                        <ControlTemplate TargetType="ProgressBar">
-                            <Grid>
-                                <Ellipse Stroke="#E2E8F0" StrokeThickness="4"/>
-                                <Path Stroke="#3B82F6" StrokeThickness="4" StrokeEndLineCap="Round" StrokeStartLineCap="Round" RenderTransformOrigin="0.5,0.5">
-                                    <Path.Data>
-                                        <PathGeometry>
-                                            <PathFigure StartPoint="30,0">
-                                                <ArcSegment Point="60,30" Size="30,30" SweepDirection="Clockwise" IsLargeArc="False"/>
-                                            </PathFigure>
-                                        </PathGeometry>
-                                    </Path.Data>
-                                    <Path.RenderTransform>
-                                        <RotateTransform x:Name="Rotator" Angle="0"/>
-                                    </Path.RenderTransform>
-                                </Path>
-                            </Grid>
-                            <ControlTemplate.Triggers>
-                                <EventTrigger RoutedEvent="Loaded">
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="Rotator" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:1" RepeatBehavior="Forever"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </EventTrigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </ProgressBar.Template>
-                </ProgressBar>
+                <ProgressBar x:Name="Spinner" IsIndeterminate="True" Width="60" Height="10" Margin="0,0,0,20"/>
                 <TextBlock x:Name="MessageText" Text="Cargando..." FontSize="16" FontWeight="SemiBold" Foreground="#334155" HorizontalAlignment="Center"/>
             </StackPanel>
         </Border>

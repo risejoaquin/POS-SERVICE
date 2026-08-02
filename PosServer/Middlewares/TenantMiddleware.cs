@@ -24,7 +24,7 @@ public class TenantMiddleware
         }
 
         var path = context.Request.Path.Value?.ToLower() ?? "";
-        bool isExemptRoute = path.Contains("/api/auth/login") || path.Contains("/api/license/validate") || path.Contains("/api/license/generate");
+        bool isExemptRoute = path == "/" || path.Contains("/swagger") || path.Contains("/api/auth/login") || path.Contains("/api/license/validate") || path.Contains("/api/license/generate");
         
         if (string.IsNullOrEmpty(tenantId) && !isExemptRoute)
         {

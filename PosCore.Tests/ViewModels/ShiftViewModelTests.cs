@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using PosCore.Data;
@@ -53,7 +54,7 @@ public class ShiftViewModelTests
         dbContext.SaveChanges();
 
         // Act
-        var viewModel = new ShiftViewModel(dbContext, sessionManager);
+        var viewModel = new ShiftViewModel(dbContext, sessionManager, new TicketPrinterService(Microsoft.Extensions.Options.Options.Create(new AppSettings())));
 
         // Assert
         viewModel.HasActiveShift.Should().BeTrue();

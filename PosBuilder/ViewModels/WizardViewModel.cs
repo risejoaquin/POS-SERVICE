@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
-
 using CommunityToolkit.Mvvm.Input;
 
 namespace PosBuilder.ViewModels
@@ -17,55 +16,73 @@ namespace PosBuilder.ViewModels
 
         [ObservableProperty]
         private string _tenantName = "Mi Tienda";
+
         [ObservableProperty]
         private string _environment = "Development";
+
         [ObservableProperty]
         private string _apiUrl = "http://localhost:5000";
+
         [ObservableProperty]
         private int _port = 3000;
 
         [ObservableProperty]
         private string _dbType = "SQLite";
+
         [ObservableProperty]
         private string _dbHost = "localhost";
+
         [ObservableProperty]
         private string _dbPort = "5432";
+
         [ObservableProperty]
         private string _dbUser = "postgres";
+
         [ObservableProperty]
         private string _dbPassword = "";
+
         [ObservableProperty]
         private string _dbName = "pos_db";
 
         [ObservableProperty]
         private string _jwtIssuer = "PosCore";
+
         [ObservableProperty]
         private string _jwtAudience = "PosApp";
+
         [ObservableProperty]
         private string _jwtSecret = "";
         
         [ObservableProperty]
         private string _brandingName = "Mi POS";
+
         [ObservableProperty]
         private string _brandingColor = "#2D5F2E";
+
         [ObservableProperty]
         private string _brandingLogoPath = "";
 
         [ObservableProperty]
         private string _adminUser = "admin";
+
         [ObservableProperty]
         private string _adminPassword = "";
+
         [ObservableProperty]
         private string _employeeUser = "cajero";
+
         [ObservableProperty]
         private string _employeePassword = "";
 
         [ObservableProperty]
         private bool _moduleInventory = true;
+
         [ObservableProperty]
         private bool _moduleReports = true;
+
         [ObservableProperty]
         private bool _moduleCredit = false;
+
         [ObservableProperty]
         private bool _moduleMultiStore = false;
 
@@ -79,21 +96,29 @@ namespace PosBuilder.ViewModels
             MessageBox.Show("Conexión exitosa a la base de datos.", "Test Connection", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-
         public WizardViewModel()
         {
             PropertyChanged += WizardViewModel_PropertyChanged;
         }
 
-        private void WizardViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void WizardViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            // Evitar StackOverflow ignorando cambios en las propiedades calculadas
+            if (e.PropertyName == nameof(CanGoNext) || 
+                e.PropertyName == nameof(CanGoPrevious) || 
+                e.PropertyName == nameof(IsLastStep))
+            {
+                return;
+            }
+
             OnPropertyChanged(nameof(CanGoNext));
-            NextCommand.NotifyCanExecuteChanged();
+            NextCommand?.NotifyCanExecuteChanged();
+
             if (e.PropertyName == nameof(CurrentStepIndex))
             {
                 OnPropertyChanged(nameof(CanGoPrevious));
                 OnPropertyChanged(nameof(IsLastStep));
-                PreviousCommand.NotifyCanExecuteChanged();
+                PreviousCommand?.NotifyCanExecuteChanged();
             }
         }
 

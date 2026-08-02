@@ -85,17 +85,16 @@ namespace PosCore.Views
                             if (existingItem != null)
                             {
                                 existingItem.Quantity++;
-                                existingItem.SubTotal = existingItem.Quantity * existingItem.Price;
+                                
                             }
                             else
                             {
                                 vm.Cart.Add(new OrderItem
                                 {
                                     ProductId = product.Id,
-                                    Name = product.Name,
-                                    Price = product.Price,
+                                    Product = product,
+                                    UnitPrice = product.Price,
                                     Quantity = 1,
-                                    SubTotal = product.Price
                                 });
                             }
                             vm.UpdateTotal();
@@ -114,7 +113,7 @@ namespace PosCore.Views
                                 MessageBox.Show("Atajo detectado: Descuento");
                                 if (!vm.IsDiscountApplied)
                                 {
-                                    vm.ApplyDiscountCommand.Execute(null); // Assuming there's a command, if not, toggle it
+                                    vm.ApplyDiscountCommand?.Execute(null); // Assuming there's a command, if not, toggle it
                                 }
                                 break;
                             case ShortcutAction.AdminPanel:

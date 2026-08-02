@@ -591,16 +591,13 @@ public partial class MainViewModel : ObservableObject
     public void UpdateTotal()
     {
         SubTotal = Cart.Sum(i => i.SubTotal);
-        // Simulate auto discount evaluation (e.g. 10% off for combo if more than 2 items)
-        if (Cart.Count >= 2)
+        if (IsDiscountApplied)
         {
             DiscountAmount = SubTotal * 0.10m;
-            IsDiscountApplied = true;
         }
         else
         {
             DiscountAmount = 0;
-            IsDiscountApplied = false;
         }
         Total = SubTotal - DiscountAmount;
     }
@@ -621,13 +618,28 @@ public partial class MainViewModel : ObservableObject
             case "ResumeOrder": ResumeOrderCommand.Execute(null); break;
             case "TechSupport": OpenLogsCommand.Execute(null); break;
             case "OpenSettings": OpenSettingsCommand.Execute(null); break;
-            case "OpenDiscount": ApplyDiscountCommand.Execute(null); break;
+            case "OpenDiscount": ApplyDiscount(); break;
             default:
                 System.Windows.MessageBox.Show($"Acción '{actionName}' no implementada aún.", "Info", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 break;
         }
     }
 
+    [RelayCommand]
+    public void ApplyDiscount()
+    {
+        if (!IsDiscountApplied)
+        {
+            DiscountAmount = SubTotal * 0.10m;
+            IsDiscountApplied = true;
+        }
+        else
+        {
+            DiscountAmount = 0;
+            IsDiscountApplied = false;
+        }
+        UpdateTotal();
+    }
     [RelayCommand]
     public void OpenSettings()
     {

@@ -77,7 +77,7 @@ public partial class App : Application
         // 1. Manejar eventos de Squirrel (accesos directos al instalar/desinstalar)
         try 
         {
-            var updateUrl = Environment.GetEnvironmentVariable("POS_UPDATE_URL") ?? $"{secureSettings.ApiSettings.BaseUrl.TrimEnd('/')}/releases";
+            var updateUrl = Environment.GetEnvironmentVariable("POS_UPDATE_URL") ?? "https://example.com/releases";
             using (var mgr = new UpdateManager(updateUrl))
             {
                 SquirrelAwareApp.HandleEvents(
