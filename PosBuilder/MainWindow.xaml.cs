@@ -55,9 +55,62 @@ namespace PosBuilder
                 return;
             }
             
-            if (string.IsNullOrWhiteSpace(TxtApiBaseUrl.Text) || !Uri.TryCreate(TxtApiBaseUrl.Text, UriKind.Absolute, out _))
+            if (string.IsNullOrWhiteSpace(TxtApiBaseUrl.Text) || !Uri.TryCreate(TxtApiBaseUrl.Text, UriKind.Absolute, out Uri apiUri))
             {
                 MessageBox.Show("La API Base URL es inválida. Debe ser una URL completa (ej. https://api.midominio.com/).", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (apiUri != null && apiUri.Scheme != Uri.UriSchemeHttps && !apiUri.IsLoopback)
+            {
+                MessageBox.Show("La API Base URL debe usar HTTPS por seguridad.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            try
+            {
+                using (var client = new System.Net.Http.HttpClient())
+                {
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    var response = await client.GetAsync(TxtApiBaseUrl.Text);
+                    response.EnsureSuccessStatusCode();
+                }
+            }
+            catch
+            {
+                var result = MessageBox.Show("No se pudo conectar a la API. ¿Desea continuar de todos modos?", "Advertencia de Conexión", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (result == MessageBoxResult.No) return;
+            }
+            if (string.IsNullOrWhiteSpace(TxtEmployeeUsername.Text) || TxtEmployeeUsername.Text.Length < 3 || !Regex.IsMatch(TxtEmployeeUsername.Text, "^[a-zA-Z0-9_]+$"))
+            {
+                MessageBox.Show("El username del empleado es inválido. Debe tener al menos 3 caracteres alfanuméricos.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(TxtEmployeePin.Text) || TxtEmployeePin.Text.Length < 4)
+            {
+                MessageBox.Show("El PIN del empleado debe tener al menos 4 caracteres.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (!int.TryParse(TxtPort.Text, out int parsedPort) || parsedPort < 1 || parsedPort > 65535)
+            {
+                MessageBox.Show("El puerto debe ser un número válido entre 1 y 65535.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            try
+            {
+                var builder = new System.Data.Common.DbConnectionStringBuilder { ConnectionString = TxtDatabaseUrl.Text };
+                if (!builder.ContainsKey("Host") || !builder.ContainsKey("Database"))
+                {
+                    MessageBox.Show("La cadena de conexión debe contener al menos Host y Database.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
+            catch
+            {
+                MessageBox.Show("La cadena de conexión (dbUrl) es inválida.", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(CmbPrimaryColor.Text) || !Regex.IsMatch(CmbPrimaryColor.Text, "^#[0-9A-Fa-f]{6}"))
+            {
+                MessageBox.Show("El color primario debe ser un código HEX válido (ej. #1976D2).", "Validación", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             if (string.IsNullOrWhiteSpace(TxtAdminUsername.Text) || TxtAdminUsername.Text.Length < 3 || !Regex.IsMatch(TxtAdminUsername.Text, "^[a-zA-Z0-9_]+$"))
@@ -120,13 +173,14 @@ namespace PosBuilder
 
         private void ProcessGeneration()
         {
-            string rootDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", ".."));
-            string posCoreDir = Path.Combine(rootDir, "PosCore");
-            
-            if (!Directory.Exists(posCoreDir))
+            string rootDir = AppDomain.CurrentDomain.BaseDirectory;
+            while (rootDir != null && !Directory.Exists(Path.Combine(rootDir, "PosCore")))
             {
-                posCoreDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "..", "PosCore"));
+                rootDir = Directory.GetParent(rootDir)?.FullName;
             }
+            if (rootDir == null) throw new Exception("No se encontró el directorio del proyecto.");
+            string posCoreDir = Path.Combine(rootDir, "PosCore");
+            if (!File.Exists(Path.Combine(posCoreDir, "build_and_package.ps1"))) throw new Exception("build_and_package.ps1 no encontrado.");
 
             AppendLog("Directorio del POS Cliente (PosCore): " + posCoreDir);
 
@@ -137,11 +191,28 @@ namespace PosBuilder
             string logoDestPath = "";
             if (!string.IsNullOrEmpty(logoSource) && File.Exists(logoSource))
             {
-                string assetsDir = Path.Combine(posCoreDir, "Assets");
+                string assetsDir = Path.GetFullPath(Path.Combine(posCoreDir, "Assets"));
                 if (!Directory.Exists(assetsDir))
                     Directory.CreateDirectory(assetsDir);
                 
-                logoDestPath = Path.Combine(assetsDir, "logo.png");
+                logoDestPath = Path.GetFullPath(Path.Combine(assetsDir, "logo.png"));
+                if (!logoDestPath.StartsWith(assetsDir))
+                {
+                    throw new Exception("Ruta de logo inválida (Path Traversal detectado).");
+                }
+                
+                // Magic bytes validation
+                byte[] buffer = new byte[4];
+                using (var fs = new FileStream(logoSource, FileMode.Open, FileAccess.Read))
+                {
+                    fs.Read(buffer, 0, buffer.Length);
+                }
+                string hex = BitConverter.ToString(buffer).Replace("-", "");
+                if (!hex.StartsWith("89504E47") && !hex.StartsWith("FFD8FF"))
+                {
+                    throw new Exception("El archivo seleccionado no es un PNG o JPG válido.");
+                }
+
                 File.Copy(logoSource, logoDestPath, true);
                 AppendLog("Logo personalizado copiado exitosamente.");
             }
@@ -182,7 +253,14 @@ namespace PosBuilder
                 apiBaseUrl = TxtApiBaseUrl.Text;
                 if (!apiBaseUrl.EndsWith("/")) apiBaseUrl += "/";
                 
-                secretKey = PwdSecretKey.Password; PwdSecretKey.Password = "";
+                var secureSecretKey = PwdSecretKey.SecurePassword;
+                var ptr = System.Runtime.InteropServices.Marshal.SecureStringToBSTR(secureSecretKey);
+                try {
+                    secretKey = System.Runtime.InteropServices.Marshal.PtrToStringBSTR(ptr);
+                } finally {
+                    System.Runtime.InteropServices.Marshal.ZeroFreeBSTR(ptr);
+                }
+                PwdSecretKey.Clear();
                 port = TxtPort.Text;
                 dbUrl = TxtDatabaseUrl.Text;
                 jwtIssuer = TxtJwtIssuer.Text;
@@ -256,10 +334,17 @@ namespace PosBuilder
             AppendLog($"Plantilla de entorno para Railway generada en: {envFilePath} (Rellene los secretos manualmente)");
 
             // Generate tenant SQL seed
-            string tenantSql = $@"-- Initial users for {storeName} ({tenantId})
-INSERT INTO ""Users"" (""Username"", ""Pin"", ""Role"", ""TenantId"") VALUES 
-('{adminUser}', '{adminPin}', 'Admin', '{tenantId}'),
-('{empUser}', '{empPin}', 'Cajero', '{tenantId}')
+            string safeStoreName = storeName.Replace("'", "''");
+            string safeTenantId = tenantId.Replace("'", "''");
+            string safeAdminUser = adminUser.Replace("'", "''");
+            string safeAdminPin = adminPin.Replace("'", "''");
+            string safeEmpUser = empUser.Replace("'", "''");
+            string safeEmpPin = empPin.Replace("'", "''");
+            
+            string tenantSql = $@"-- Initial users for {safeStoreName} ({safeTenantId})
+INSERT INTO ""Users"" (""Username"", ""PasswordHash"", ""Role"", ""TenantId"") VALUES 
+('{safeAdminUser}', crypt('{safeAdminPin}', gen_salt('bf')), 'Admin', '{safeTenantId}'),
+('{safeEmpUser}', crypt('{safeEmpPin}', gen_salt('bf')), 'Cajero', '{safeTenantId}')
 ON CONFLICT DO NOTHING;
 ";
             string sqlFilePath = Path.Combine(rootDir, $"{tenantId}_seed.sql");

@@ -55,9 +55,9 @@ public class CentralDbContext : DbContext
         );
         var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         var dictComparer = new ValueComparer<Dictionary<string, object>>(
-            (c1, c2) => JsonSerializer.Serialize(c1, jsonOptions) == JsonSerializer.Serialize(c2, jsonOptions),
-            c => c == null ? 0 : JsonSerializer.Serialize(c, jsonOptions).GetHashCode(),
-            c => c == null ? new Dictionary<string, object>() : JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(c, jsonOptions), jsonOptions) ?? new Dictionary<string, object>()
+            (c1, c2) => c1 != null && c2 != null && c1.SequenceEqual(c2),
+            c => c == null ? 0 : c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value?.GetHashCode())),
+            c => c == null ? new Dictionary<string, object>() : c.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
         );
 
         modelBuilder.Entity<User>()

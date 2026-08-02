@@ -28,7 +28,10 @@ public partial class App : Application
     {
         try
         {
-            var updateUrl = Environment.GetEnvironmentVariable("POS_UPDATE_URL") ?? "https://pos-service-production-ad3c.up.railway.app/releases";
+            string configPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
+            var tempSettings = PosCore.Services.SecureConfigManager.LoadAndSecureConfig(configPath);
+            var baseApiUrl = tempSettings.ApiSettings.BaseUrl.TrimEnd('/');
+            var updateUrl = Environment.GetEnvironmentVariable("POS_UPDATE_URL") ?? $"{baseApiUrl}/releases";
             using (var mgr = new UpdateManager(updateUrl))
             {
                 if (mgr.IsInstalledApp)
@@ -74,7 +77,7 @@ public partial class App : Application
         // 1. Manejar eventos de Squirrel (accesos directos al instalar/desinstalar)
         try 
         {
-            var updateUrl = Environment.GetEnvironmentVariable("POS_UPDATE_URL") ?? "https://pos-service-production-ad3c.up.railway.app/releases";
+            var updateUrl = Environment.GetEnvironmentVariable("POS_UPDATE_URL") ?? $"{secureSettings.ApiSettings.BaseUrl.TrimEnd('/')}/releases";
             using (var mgr = new UpdateManager(updateUrl))
             {
                 SquirrelAwareApp.HandleEvents(

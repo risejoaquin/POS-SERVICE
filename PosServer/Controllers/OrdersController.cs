@@ -69,6 +69,21 @@ namespace PosServer.Controllers
                 try
                 {
                     _context.Orders.Add(order);
+                    
+                    // Deduct stock for each item
+                    if (order.Items != null)
+                    {
+                        foreach (var item in order.Items)
+                        {
+                            var product = await _context.Products.FirstOrDefaultAsync(p => p.Barcode == item.ProductBarcode && p.TenantId == tenantId);
+                            if (product != null)
+                            {
+                                product.StockQuantity -= item.Quantity;
+                                product.LastUpdated = DateTime.UtcNow;
+                            }
+                        }
+                    }
+                    
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     return Ok(new { Message = "Orden sincronizada exitosamente", ServerOrderId = order.Id });
