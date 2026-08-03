@@ -9,7 +9,6 @@
         Title="Devoluciones y Notas de Crédito" Height="600" Width="900"
         WindowStartupLocation="CenterOwner">
         <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </Window.Resources>
     <Grid Background="#F3F4F6">
         <Grid.RowDefinitions>

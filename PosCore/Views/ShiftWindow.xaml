@@ -9,7 +9,7 @@
         Title="Arqueo y Control de Turnos - POS Express" Height="500" Width="450"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Background="#F3F4F6">
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
         <converters:LessThanZeroConverter x:Key="LessThanZeroConverter"/>
     </Window.Resources>
